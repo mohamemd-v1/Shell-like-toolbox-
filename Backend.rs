@@ -1,7 +1,9 @@
 pub mod commands {
 use colored::Colorize;
 
-use crate::backend::{safe::{SafeVoid, SafePath, SafeOutpot, SafeNum, SafeFile}, standard::{input, tell}};
+pub const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
+
+use crate::backend::{safe::{Safe, SafeT}, standard::{input, tell}};
 use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn help(helpt:String) {
        match helpt.trim() {
@@ -36,14 +38,14 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     //code:1
     pub fn clean() -> std::io::Result<()> {
        print!("\x1B[2J\x1B[1;1H");
-       stdout().flush().safe()?;
+       stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
        Ok(())
     }
 
     //code:1
     pub fn go(t:String) -> std::io::Result<()> { 
-        let path = PathBuf::from(t);
-        env::set_current_dir(&path).safe_mas("Go".to_string() , "directory has been changed successfully".to_string())?;
+        let path = PathBuf::from(&t);
+        env::set_current_dir(&path).safe_mas("Go" , "directory has been changed successfully", &t);
         Ok(())
     }
     
@@ -51,7 +53,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn  wh() -> std::io::Result<()> {
         let path = tell();
 
-        let wh = env::current_dir().safe()?;
+        let wh = env::current_dir().safe_w_res(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str())?;
         println!("[{path:?}]~>{}\x1b[34m{}\x1b[0m" ,"~".bright_green(), wh.display());
         Ok(())
     }
@@ -60,7 +62,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn see () -> std::io::Result<()> {
         let path = tell();
 
-        let cur = env::current_dir().safe()?;
+        let cur = env::current_dir().safe_w_res("Dir Not Found")?;
         let dir = fs::read_dir(cur);
 
         match dir {
@@ -81,19 +83,19 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     //code:1
     pub fn peek(file:String) -> std::io::Result<()> {
         let path = tell();
-        let fe = File::open(&file).safe();
+        let fe = File::open(&file);
 
         if let Err(e) = &fe {
             if e.kind() == ErrorKind::NotFound {
                 println!("[{path:?}]~>{}: couldn't open the file due to [{}]" , "Error".red().bold() , "NotFound error".red().bold());
                 println!("[{path:?}]~>Do you want to make this file?");
                 print!("[{path:?}]~>({}/{}):" , "Y".green() , "N".red());
-                stdout().flush().safe()?;
+                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
 
                 let yesorno = input();
 
                 if yesorno == "Y" {
-                    fs::File::create(&file).safe()?;
+                    fs::File::create(&file).safe(&file);
                 }
             }
         };
@@ -101,7 +103,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
         let fe = &mut fe?;
 
         let mut r = String::new();
-        let _read =  fe.read_to_string(&mut r)._safe()?;
+        let _read =  fe.read_to_string(&mut r).safe(&file);
 
         println!("\x1b[34m{}\x1b[0m" , r);
         Ok(())
@@ -109,7 +111,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
 
     //code:1
     pub fn mk(path:String) -> std::io::Result<()> {
-        fs::create_dir(&path).safe_mas("Mk".to_string(), "Directory created successfully".to_string())?;
+        fs::create_dir(&path).safe_mas("Mk", "Directory created successfully" , &path);
         Ok(())
     }
 
@@ -117,20 +119,26 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn burn(path:String) -> std::io::Result<()> {
         let tell = tell();
 
-        let burn = fs::remove_file(&path).safe_mas("burn".to_string(), "File has been burned successfully".to_string());
+        let burn = fs::remove_file(&path);
+
+        if burn.is_ok() == true {
+                println!("[{path:?}]~>{}: [{}]" , "burn".bright_green().bold() , "file has been burned successfully".bright_green().bold());
+            }
+
         if let Err(e) = burn {
             match e.kind() {
                 ErrorKind::IsADirectory => {
-                    let burn_dir = fs::remove_dir(&path).safe_mas("burn".to_string(), "Directory has been burned successfully".to_string());
+                    let burn_dir = fs::remove_dir(&path);
+
                     if let Err(e) = burn_dir {
                         if e.kind() == ErrorKind::DirectoryNotEmpty {
 
                             print!("[{tell:?}]~>[{}/{}]: the Directory is Not Empty do you stil want to delete it? >> " , "Y".bold().green() , "N".bold().red());
-                            stdout().flush().safe()?;
+                            stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
 
                             let yesorno = input();
                             if yesorno == "Y" {
-                                fs::remove_dir_all(&path).safe_mas("burn".to_string(), "Directory has been burned successfully".to_string())?;
+                                fs::remove_dir_all(&path).safe_mas("burn", "Directory has been burned successfully", &path);
                             }
                         }
                     }
@@ -143,40 +151,41 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
 
     //code:1
     pub fn rn(f:String , t:String) -> std::io::Result<()> {
-        fs::rename(f, t).safe_mas("rn".to_string(), "Renamed successfully".to_string())?;
+        fs::rename(&f, &t).safe_mas("rn", "Renamed successfully",format!("{}+{}" , &f , &t).as_str());
         Ok(())
     }
 
     //code:1
     pub fn clone(f:String , t:String) -> std::io::Result<()> {
-        fs::copy(f, t).safe_mas("clone".to_string(), "Copied!".to_string())?;
+        fs::copy(&f, &t).safe_mas("clone", "Copied!", format!("{}+{}" , &f , &t).as_str());
         Ok(())
     }
 
     //code:1
     pub fn forge(file:String) -> std::io::Result<()> {
-        fs::File::create(file).safe_mas("Forge completed!".to_string(), "File created".to_string())?;
+        fs::File::create(&file).safe_mas("Forge completed!", "File created" , &file);
         Ok(())
     }
 
     //code:1
     pub fn run(app:String) -> std::io::Result<()> {
         let path = tell();
-        let run = process::Command::new(app).output().safe()?;
-        
+        let run = process::Command::new(&app).output().safe_w_res(&app)?;
+
         println!("[{path:?}]~>\x1b[34m{}\x1b[0m" , String::from_utf8_lossy(&run.stdout));
         Ok(())
     }
 
     //code:1
     pub fn mv(name:String , path:String) -> std::io::Result<()> {
-        fs::copy(&name, format!("{}/{}" , &path , &name))._safe()?;
+        fs::copy(&name, format!("{}/{}" , &path , &name)).safe(format!("{}/{}" , &path, &name).as_str());
 
-        let delete_eveadnice = fs::remove_file(&name).safe_mas("mv".to_string(), "moving completed".to_string());
+        let delete_eveadnice = fs::remove_file(&name);
+
         if let Err(e) = delete_eveadnice {
             match e.kind() {
                 ErrorKind::IsADirectory => {
-                    fs::remove_dir_all(&name).safe_mas("mv".to_string(), "moving completed".to_string())?;
+                    fs::remove_dir_all(&name).safe_mas("mv", "moving completed" , format!("{}/{}" , &path, &name).as_str());
                 }
                 _ => {}
             }
@@ -190,11 +199,11 @@ pub mod standard {
     use std::{ env::*, io::{stdin}, path::PathBuf};
     use colored::Colorize;
 
-    use crate::backend::safe::SafeNum;
+    use crate::backend::safe::SafeT;
 
     pub fn input() -> String {
         let mut input = String::new();
-        stdin().read_line(&mut input)._safe().unwrap_or_default();
+        stdin().read_line(&mut input).safe("Parsing Error");
         let input = input.trim().to_string();
 
         input
@@ -235,216 +244,372 @@ pub mod tokenization {
 }
 
 pub mod safe {
-    use std::{fs::{File, Metadata}, ops::Add, path::PathBuf, process::{Output}};
+    use std::{fs::{File, Metadata}, io::ErrorKind, ops::Add, path::PathBuf, process::Output};
 
     use colored::Colorize;
 
-    use crate::backend::standard::tell;
+    use crate::backend::{standard::tell};
 
-    pub trait SafeVoid {
-        fn safe(self) -> std::io::Result<()>;
-        fn safe_mas(self , mas1:String , mas1:String) -> std::io::Result<()>;
+    pub trait Safe {
+        fn safe(self , err_res:&str);
+        fn safe_mas(self , mas1:&str , mas1:&str , err_res:&str);
+        fn safe_w_res(self , err_res:&str) -> Self;
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self;
     }
 
-    pub trait SafeFile {
-        fn safe(self) -> std::io::Result<File>;
-        fn safe_mas(self , mas1:String , mas2:String) -> std::io::Result<File>;
+    pub trait SafeT<T> {
+        fn safe(self , err_res:&str);
+        fn safe_mas(self , mas1:&str , mas1:&str , err_res:&str);
     }
 
-    pub trait SafeNum<T> {
-        fn _safe(self) -> std::io::Result<T>;
-        fn safe_mas(self , mas1:String , mas2:String) -> std::io::Result<T>;
+    pub fn errmes(e:&std::io::Error , err_res:&str) {
+        let path = tell();
+
+        match e.kind() {
+            ErrorKind::NotFound => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the requested resource was not found".bright_red().bold() , err_res.bright_yellow().bold());
+            }
+            ErrorKind::IsADirectory => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "is a directory".bright_red().bold() , err_res.bright_yellow().bold());
+            }
+            ErrorKind::Interrupted => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "operation interrupted".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::InvalidInput => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "invalid input".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::DirectoryNotEmpty => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "directory not empty".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::InvalidFilename => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Invalid file name".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::FileTooLarge => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "The file is to large".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::NotADirectory => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "is not a directory".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::PermissionDenied => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Permission denied".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::ReadOnlyFilesystem => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Read only file".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::InvalidData => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Invalid data".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::StorageFull => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Storage is full try to free up some storage and try again".bright_red().bold() , err_res.bright_yellow());
+            }
+            ErrorKind::Unsupported => {
+                println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Unsupported operation".bright_red().bold() , err_res.bright_yellow());
+            }
+            _ => {
+                eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold())
+            }
+        }
     }
 
-    pub trait SafeOutpot {
-        fn safe(self) -> std::io::Result<Output>;
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<Output>;
-    }
+    //done
+    impl Safe for std::io::Result<File> {
+        fn safe(self , err_res:&str) {
+            match self {
+                Ok(_) => return,
 
-    pub trait SafePath {
-        fn safe(self) -> std::io::Result<PathBuf>;
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<PathBuf>;
-    }
-
-    pub trait SafeMeta {
-        fn safe(self) -> std::io::Result<Metadata>;
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<Metadata>;
-    }
-
-    impl SafeFile for std::io::Result<File> {
-        fn safe(self) -> std::io::Result<File> {
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
             let path = tell();
 
             match self {
-                Ok(o) => return Ok(o),
+                Ok(_) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    return;
+                }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+            match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
                     return Err(e);
                 }
             }
         }
-        fn safe_mas(self , mas1:String , mas2:String) -> std::io::Result<File> {
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
             let path = tell();
 
-            match self {
+            let s = match self {
                 Ok(o) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
+                    o
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
                     return Err(e);
                 }
-            }
+            };
+            return Ok(s);
         }
     }
     
-    impl<T: Clone + Add<Output = T> + Copy> SafeNum<T> for std::io::Result<T> {
-        fn _safe(self) -> std::io::Result<T> {
-            let path = tell();
-
+    //done
+    impl<T: Add<Output = T> + Copy > SafeT<T> for std::io::Result<T> {
+        fn safe(self , err_res:&str) {
             match self {
-                Ok(o) => {
-                    return Ok(o);
-                }
+                Ok(_) => return,
+
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
-                    return Err(e);
+                    errmes(&e, err_res);
+                    return;
                 }
             }
         }
-        fn safe_mas(self , mas1:String , mas2:String) -> std::io::Result<T> {
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str )  {
             let path = tell();
 
             match self {
-                Ok(o) => {
+                Ok(_) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
+                    return;
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
-                    return Err(e);
+                    errmes(&e, err_res);
+                    return;
                 }
             }
         }
     }
 
-    impl SafeOutpot for std::io::Result<Output> {
-        fn safe(self) -> std::io::Result<Output> {
+    //done
+    impl Safe for std::io::Result<PathBuf> {
+        fn safe(self , err_res:&str)  {
+             match self {
+                Ok(_) => return,
+
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
             let path = tell();
 
             match self {
-                Ok(o) => {
-                    return Ok(o);
+                Ok(_) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    return;
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+            match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
                     return Err(e);
                 }
             }
         }
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<Output> {
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
             let path = tell();
 
-            match self {
+            let s = match self {
                 Ok(o) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
+                    o
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
+                    return Err(e);
+                }
+            };
+            return Ok(s);
+        }
+    }
+
+    //done
+    impl Safe for std::io::Result<()> {
+        fn safe(self , err_res:&str) {
+            match self {
+                Ok(_) => return,
+
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
+            let path = tell();
+
+            match self {
+                Ok(_) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    return;
+                }
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+            match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
                     return Err(e);
                 }
             }
         }
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
+            let path = tell();
+
+            let s = match self {
+                Ok(o) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    o
+                }
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return Err(e);
+                }
+            };
+            return Ok(s);
+        }
     }
-    impl SafePath for std::io::Result<PathBuf> {
-        fn safe(self) -> std::io::Result<PathBuf> {
+    
+    //done
+    impl Safe for std::io::Result<Metadata> {
+        fn safe(self , err_res:&str ) {
+            match self {
+                Ok(_) => return,
+
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
             let path = tell();
 
              match self {
-                Ok(o) => {
-                    return Ok(o);
+                Ok(_) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    return;
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+            match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
                     return Err(e);
                 }
             }
         }
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<PathBuf> {
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
             let path = tell();
 
-            match self {
+            let s = match self {
                 Ok(o) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
+                    o
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
                     return Err(e);
                 }
-            }
+            };
+            return Ok(s);
         }
     }
 
-    impl SafeVoid for std::io::Result<()> {
-        fn safe(self) -> std::io::Result<()> {
-            let path = tell();
-
+    impl Safe for std::io::Result<Output> {
+        fn safe(self , err_res:&str ) {
             match self {
-                Ok(o) => {
-                    return Ok(o);
-                }
+                Ok(_) => return,
+
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
-                    return Err(e);
+                    errmes(&e, err_res);
+                    return;
                 }
             }
         }
-        fn safe_mas(self , mas1:String , mas2:String) -> std::io::Result<()> {
-            let path = tell();
-
-            match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
-                }
-                Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
-                    return Err(e);
-                }
-            }
-        }
-    }
-
-    impl SafeMeta for std::io::Result<Metadata> {
-        fn safe(self) -> std::io::Result<Metadata> {
-            let path = tell();
-
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                }
-                Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas(self , mas1:String , mas2:String) -> std::io::Result<Metadata> {
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
             let path = tell();
 
              match self {
-                Ok(o) => {
+                Ok(_) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return Ok(o);
+                    return;
                 }
                 Err(e) => {
-                    eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold() );
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+            match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
                     return Err(e);
                 }
             }
         }
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
+            let path = tell();
+
+            let s = match self {
+                Ok(o) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    o
+                }
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return Err(e);
+                }
+            };
+            return Ok(s);
+        }
     }
-  }
+}
