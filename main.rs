@@ -116,7 +116,7 @@ fn main() {
         }
         "cal" => {
             let tok1 = token(&data , 1);
-            apps::cul(tok1);
+            apps::calc(tok1);
         }
         "time" => {
             apps::time();
@@ -132,6 +132,13 @@ fn main() {
             let fname = token(&data, 3);
             let outname = token(&data, 4);
             apps::ship(ttype, flag , fname , outname).unwrap_or_default();
+        }
+        "transmute" => {
+            let ttype = token(&data, 1);
+            let flag  = token(&data, 2);
+            let fname = token(&data, 3);
+            let outname = token(&data, 4);
+            apps::transmute(ttype, flag, fname, outname).unwrap_or_default()
         }
         "end" => {
             break;
