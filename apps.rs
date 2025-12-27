@@ -1,10 +1,11 @@
-use std::{ fs, path};
-
+use std::{ fs, io::* ,path};
 use colored::*;
 use evalexpr::*;
 use chrono::*;
+use crossterm::{terminal::* , event::* , execute , };
+
 use tar::{Archive};
-use crate::backend::{clean::read_file_cont, safe::{Safe}, standard::tell};
+use crate::backend::{clean::read_file_cont, commands::{self, GITHUBLINK}, safe::Safe, standard::tell};
 use base64::{prelude::{BASE64_STANDARD, BASE64_STANDARD_NO_PAD, BASE64_URL_SAFE}, *};
 
 pub fn calc (math:String) {
@@ -182,4 +183,335 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
         }
     }
     Ok(())
-}   
+}
+
+
+// Helper functions for cursor position calculation
+fn get_cursor_row_col(text: &str, cursor_pos: usize) -> (usize, usize) {
+    let before_cursor = &text[..cursor_pos];
+    let row = before_cursor.matches('\n').count();
+    let col = before_cursor.split('\n').last().unwrap_or("").len();
+    (row, col)
+}
+
+fn get_pos_from_row_col(text: &str, target_row: usize, target_col: usize) -> usize {
+    let lines: Vec<&str> = text.split('\n').collect();
+    
+    let mut pos = 0;
+    for (i, line) in lines.iter().enumerate() {
+        if i == target_row {
+            return pos + target_col.min(line.len());
+        }
+        pos += line.len() + 1; // +1 for the '\n'
+    }
+    
+    text.len()
+}
+
+// Helper to redraw from cursor position to end of screen
+fn redraw_from_cursor(text: &str, cursor_pos: usize) -> std::io::Result<()> {
+    let remaining = &text[cursor_pos..];
+    let show = remaining.replace('\n', "\n\r");
+    
+    // Save cursor position
+    execute!(stdout(), crossterm::cursor::SavePosition)?;
+    
+    // Print remaining text
+    print!("{}", show);
+    
+    // Clear any leftover text after what we just printed
+    execute!(stdout(), Clear(ClearType::FromCursorDown))?;
+    
+    // Restore cursor position
+    execute!(stdout(), crossterm::cursor::RestorePosition)?;
+    
+    stdout().flush()?;
+    Ok(())
+}
+
+pub fn vortex(file_p: &str) -> std::io::Result<()> {
+    execute!(stdout(), Clear(ClearType::All)).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    commands::clean()?;
+
+    execute!(stdout(), EnterAlternateScreen).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    println!("{}{file_p}", "~".bright_magenta().bold());
+
+    let cont = read_file_cont(&file_p)?;
+    
+    enable_raw_mode().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());    
+    
+    let mut text = String::from(&cont);
+    let mut cursor_pos: usize = text.len(); // Track cursor position in the text
+    
+    if !text.is_empty() {
+        let show = text.replace('\n', "\n\r");
+        print!("{}", &show);
+        stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    }
+
+    loop {
+        match read()? {
+            // Quit with Ctrl+Q
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('q'), 
+                modifiers: KeyModifiers::CONTROL, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE
+            }) => {
+                break;
+            }
+            
+            // Save with Ctrl+S
+            Event::Key(KeyEvent { 
+                code: KeyCode::Char('s'), 
+                modifiers: KeyModifiers::CONTROL, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                fs::write(&file_p, &text).safe("Couldn't write to the file");
+                break;
+            }
+            
+            // Insert character at cursor position
+            Event::Key(KeyEvent { 
+                code: KeyCode::Char(c), 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                text.insert(cursor_pos, c);
+                
+                // Redraw from cursor position
+                redraw_from_cursor(&text, cursor_pos).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                
+                // Move cursor right after the inserted character
+                cursor_pos += 1;
+                execute!(stdout(), crossterm::cursor::MoveRight(1))
+                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                
+                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+            }
+            
+            // Handle Enter key - insert newline and redraw everything below
+            Event::Key(KeyEvent { 
+                code: KeyCode::Enter, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                text.insert(cursor_pos, '\n');
+                cursor_pos += 1;
+                
+                // Clear everything from current cursor position to end of screen
+                execute!(stdout(), Clear(ClearType::FromCursorDown))
+                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                
+                // Get the text that should appear on the new line and below
+                let remaining = &text[cursor_pos..];
+                let show = remaining.replace('\n', "\n\r");
+                
+                // Move to new line and print remaining text
+                print!("\r\n{}", show);
+                
+                // Move cursor back to start of the new line (where cursor_pos is)
+                let lines_below = remaining.matches('\n').count();
+                if lines_below > 0 {
+                    execute!(stdout(), crossterm::cursor::MoveUp(lines_below as u16))
+                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+                
+                // Position at column 0 of the new line
+                execute!(stdout(), crossterm::cursor::MoveToColumn(0))
+                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                
+                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+            }
+            
+            // Handle Backspace
+            Event::Key(KeyEvent { 
+                code: KeyCode::Backspace, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                if cursor_pos > 0 {
+                    cursor_pos -= 1;
+                    let deleted_char = text.remove(cursor_pos);
+                    
+                    if deleted_char == '\n' {
+                        // Deleting a newline - need to join two lines
+                        
+                        // Move up to previous line
+                        execute!(stdout(), crossterm::cursor::MoveUp(1))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                        // Find the length of the previous line to position cursor at end
+                        let lines: Vec<&str> = text[..cursor_pos].split('\n').collect();
+                        let col = if let Some(last_line) = lines.last() {
+                            last_line.len()
+                        } else {
+                            0
+                        };
+                        
+                        execute!(stdout(), crossterm::cursor::MoveToColumn(col as u16))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                        // Clear from cursor to end of screen
+                        execute!(stdout(), Clear(ClearType::FromCursorDown))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                        // Redraw everything from current position
+                        let remaining = &text[cursor_pos..];
+                        let show = remaining.replace('\n', "\n\r");
+                        print!("{}", show);
+                        
+                        // Calculate how many lines we printed
+                        let lines_printed = remaining.matches('\n').count();
+                        
+                        // Move cursor back to the join point
+                        if lines_printed > 0 {
+                            execute!(stdout(), crossterm::cursor::MoveUp(lines_printed as u16))
+                                .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        }
+                        execute!(stdout(), crossterm::cursor::MoveToColumn(col as u16))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                    } else {
+                        // Deleting a regular character
+                        // Move cursor left
+                        execute!(stdout(), crossterm::cursor::MoveLeft(1))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                        // Get remaining text on current line only
+                        let remaining = &text[cursor_pos..];
+                        let current_line_end = remaining.find('\n').unwrap_or(remaining.len());
+                        let rest_of_line = &remaining[..current_line_end];
+                        
+                        // Print rest of line + space to clear the deleted character
+                        print!("{} ", rest_of_line);
+                        
+                        // Move cursor back to correct position
+                        let move_back = rest_of_line.len() + 1;
+                        execute!(stdout(), crossterm::cursor::MoveLeft(move_back as u16))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    }
+                    
+                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+            }
+            
+            // Move cursor LEFT
+            Event::Key(KeyEvent { 
+                code: KeyCode::Left, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                if cursor_pos > 0 {
+                    // Check if we're moving past a newline
+                    if text.chars().nth(cursor_pos - 1) == Some('\n') {
+                        cursor_pos -= 1;
+                        
+                        // Move up and to end of previous line
+                        execute!(stdout(), crossterm::cursor::MoveUp(1))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        
+                        let lines: Vec<&str> = text[..cursor_pos].split('\n').collect();
+                        if let Some(last_line) = lines.last() {
+                            execute!(stdout(), crossterm::cursor::MoveToColumn(last_line.len() as u16))
+                                .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        }
+                    } else {
+                        cursor_pos -= 1;
+                        execute!(stdout(), crossterm::cursor::MoveLeft(1))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    }
+                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+            }
+            
+            // Move cursor RIGHT
+            Event::Key(KeyEvent { 
+                code: KeyCode::Right, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                if cursor_pos < text.len() {
+                    // Check if we're moving over a newline
+                    if text.chars().nth(cursor_pos) == Some('\n') {
+                        cursor_pos += 1;
+                        
+                        // Move down to start of next line
+                        print!("\r\n");
+                    } else {
+                        cursor_pos += 1;
+                        execute!(stdout(), crossterm::cursor::MoveRight(1))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    }
+                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+            }
+            
+            // Move cursor UP
+            Event::Key(KeyEvent { 
+                code: KeyCode::Up, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                let (row, col) = get_cursor_row_col(&text, cursor_pos);
+                if row > 0 {
+                    let new_pos = get_pos_from_row_col(&text, row - 1, col);
+                    let (_, new_col) = get_cursor_row_col(&text, new_pos);
+                    
+                    cursor_pos = new_pos;
+                    execute!(stdout(), crossterm::cursor::MoveUp(1))
+                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    
+                    // Adjust horizontal position if needed
+                    if new_col != col {
+                        execute!(stdout(), crossterm::cursor::MoveToColumn(new_col as u16))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    }
+                    
+                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+            }
+            
+            // Move cursor DOWN
+            Event::Key(KeyEvent { 
+                code: KeyCode::Down, 
+                modifiers: KeyModifiers::NONE, 
+                kind: KeyEventKind::Press, 
+                state: KeyEventState::NONE 
+            }) => {
+                let (row, col) = get_cursor_row_col(&text, cursor_pos);
+                let total_rows = text.matches('\n').count();
+                
+                if row < total_rows {
+                    let new_pos = get_pos_from_row_col(&text, row + 1, col);
+                    let (_, new_col) = get_cursor_row_col(&text, new_pos);
+                    
+                    cursor_pos = new_pos;
+                    execute!(stdout(), crossterm::cursor::MoveDown(1))
+                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    
+                    // Adjust horizontal position if needed
+                    if new_col != col {
+                        execute!(stdout(), crossterm::cursor::MoveToColumn(new_col as u16))
+                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    }
+                    
+                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                }
+            }
+            
+            _ => {}
+        }
+    }
+    
+    execute!(stdout(), LeaveAlternateScreen).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    disable_raw_mode().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    Ok(())
+}
