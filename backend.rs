@@ -4,7 +4,7 @@ use colored::Colorize;
 pub const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 
 use crate::backend::{safe::{Safe, SafeT}, standard::{input, tell}};
-use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
+use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn help(helpt:String) {
        match helpt.trim() {
         "--commands" => {
@@ -20,6 +20,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
             println!("   *{} {} {} to make a dir" , "enter".green() , "mk".bright_blue() , "<Name>".bright_purple());
             println!("   *{} {} {} to run a program" , "enter".green() , "run".bright_blue() , "<App>".bright_purple() );
             println!("   *{} {} {} to move a file from place to another" , "enter".green() , "mv".bright_blue() , "<Name>".bright_purple());
+            println!("   *{} {} {} to find the dir of a file" , "enter".green() , "find".bright_blue() , "<FileName>".bright_purple());
         }
         "--built-in-apps" => {
             println!("   *{} {} {} to use the built-in calculator" , "enter".green() , "calc".bright_blue() , "<Math>".purple());
@@ -200,10 +201,31 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
 
         Ok(())
     }
+
+    pub fn find(file_path:&str) -> std::io::Result<()> {
+        use walkdir::*;
+        let tell = tell();
+        let mut err = false;
+
+        let find = WalkDir::new("/").into_iter().filter_map(|e| e.ok());
+
+        for i in find {
+            if i.file_name() == file_path {
+                println!("[{tell:?}]~> [{}] {}: \x1b[33m{}\x1b[0m", "find".bright_green().bold(), "found at".bright_green().bold(), i.path().display() );
+                err = true;
+            }
+        }
+
+        if err == false {
+            println!("[{tell:?}]~> [{}] {}: \x1b[31m{}\x1b[0m", "find".bright_green().bold(), "Couldn`t find it anywhere".bright_red().bold(), &file_path);
+        }
+
+        Ok(())
+    }
 } 
 
 pub mod standard {
-    use std::{ env::*, io::{stdin}, path::PathBuf};
+    use std::{ env::*, io::stdin, path::PathBuf};
     use colored::Colorize;
 
     use crate::backend::safe::SafeT;
@@ -613,6 +635,59 @@ pub mod safe {
                 }
             };
             return Ok(s);
+        }
+    }
+    impl Safe for std::io::Result<walkdir::DirEntry> {
+        fn safe(self , err_res:&str) {
+            match self {
+                Ok(_) => return,
+
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str) {
+            let path = tell();
+
+             match self {
+                Ok(_) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    return;
+                }
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return;
+                }
+            }
+        }
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:&str) -> Self {
+            let path = tell();
+
+            let s = match self {
+                Ok(o) => {
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    o
+                }
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return Err(e);
+                }
+            };
+            return Ok(s);
+        }
+        fn safe_w_res(self , err_res:&str) -> Self {
+             match self {
+                Ok(o) => {
+                    return Ok(o);
+                },
+
+                Err(e) => {
+                    errmes(&e, err_res);
+                    return Err(e);
+                }
+            }
         }
     }
 }
