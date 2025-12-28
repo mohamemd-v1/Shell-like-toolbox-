@@ -26,7 +26,7 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
             println!("   *{} {} to know the time" , "enter".green() , "time".bright_blue() );
             println!("   *{} {} {} {} {} {} to make/extract tar files" , "enter".green() , "ship".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
             println!("   *{} {} {} {} {} {} to encode/decode files" , "enter".green() , "transmute".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
-
+            println!("   *{} {} {} to edit and read files or text" , "enter".green() , "vortex".bright_blue() , "<File>".bright_purple());
         }
         "--about" => {
             println!("{}HyperKit is a modern, extensible, and lightweight command-line environment built to unify the tools you need into one powerful workspace." , "@".bright_green() )
@@ -36,6 +36,9 @@ use std::{env, fs::{self,File}, io::*,  path::PathBuf  , process};
         }
         "transmute" => {
                 println!("   *[{}: base64-PD<pedding> , base64-ST<standerd> , base64-URL<url> , hex<low-case hex> , Hex<uper-case hex> ][{}: --enc {} --dec {}]" , "Types".bright_green().bold() , "flags".bright_blue().bold(), "to encode a file".bright_purple().bold() , "to decode a file".bright_yellow().bold());
+        }
+        "vortex" => {
+            println!("  *[{}: {}<To save the file or edits> {}<To quit without saving anything>]" , "codes".bright_green().bold() , "CTRL+s".bright_blue().bold() , "CTRL+q".bright_purple().bold());
         }
         _ => {
             println!("   *{} {} {} to see all the commands , {} to list all the available built in apps , {} for about" , "Enter".green()  , "help".red() ,"--commands".bright_purple() , "--built-in-apps".bright_purple() , "--about".bright_purple() );
