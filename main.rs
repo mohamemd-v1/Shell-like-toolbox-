@@ -148,6 +148,13 @@ fn main() {
             let fpath = token(&data, 1);
             commands::find(&fpath).unwrap_or_default()
         }
+        "ps" => {
+            let tok1 = token(&data, 1);
+            let tok2 = token(&data, 2);
+            let tok2 = tok2.parse().map(|e: usize| e as usize).unwrap_or_default();
+            
+            commands::ps(&tok1 , tok2).unwrap_or_default();
+        }
         "end" => {
             break;
         }
