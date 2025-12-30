@@ -1,9 +1,9 @@
 pub mod commands {
 use colored::Colorize;
-
+use sysinfo::{System};
 pub const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 
-use crate::backend::{safe::{Safe, SafeT}, standard::{input, tell}};
+use crate::backend::{safe::{ Safe, SafeT}, standard::{input, tell}};
 use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn help(helpt:String) {
        match helpt.trim() {
@@ -21,6 +21,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
             println!("   *{} {} {} to run a program" , "enter".green() , "run".bright_blue() , "<App>".bright_purple() );
             println!("   *{} {} {} to move a file from place to another" , "enter".green() , "mv".bright_blue() , "<Name>".bright_purple());
             println!("   *{} {} {} to find the dir of a file" , "enter".green() , "find".bright_blue() , "<FileName>".bright_purple());
+            println!("   *{} {} {} to list and lookup prosses" , "enter".green() , "ps".bright_blue() , "<Flag[-SF: search for pros , -A: list all the pros]>".bright_purple());
         }
         "--built-in-apps" => {
             println!("   *{} {} {} to use the built-in calculator" , "enter".green() , "calc".bright_blue() , "<Math>".purple());
@@ -222,6 +223,35 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
 
         Ok(())
     }
+
+    pub fn ps(_flag:&str , _pid:usize) -> std::io::Result<()> {
+        use sysinfo::Pid;
+        
+        let tell = tell();
+        let mut sys = System::new_all();
+        sys.refresh_all();
+        match _flag {
+            "-SF" => {
+                if _flag == "-SF" {
+                        if let Some(p) = sys.process(Pid::from(_pid)) {
+                            println!("[{tell:?}]~>[{}] \x1B[1m\x1B[36m{}\x1B[0m\x1B[0m | {}:\x1B[1m\x1B[32m{:?}\x1B[0m\x1B[0m Gib | \x1B[1m\x1B[36m{}\x1B[0m\x1B[0m:{} Gib" ,"ps".bright_green().bold(), p.name().display() , "Disk usage".bright_yellow().bold() ,p.disk_usage().total_written_bytes as f64 / f64::from(1024).powi(3) , "memory usage".bright_yellow().bold() ,p.memory() as f64  / f64::from(1024).powi(3));
+                    }
+                        if let None = sys.process(Pid::from(_pid)) {
+                            println!("[{tell:?}]~>[{}] {}: process not found or not running \x1b[1m\x1b[31m<{}>\x1b[0m\x1b[0m" , "ps".bright_green().bold() , "Error".bright_red().bold() , _pid )
+                        }
+                }
+            }
+            "-A" => {
+                for (pid , pros) in sys.processes() {
+                    println!("[\x1B[1m\x1B[32m{pid}\x1B[0m\x1B[0m]~>\x1B[1m\x1B[36m{}\x1B[0m\x1B[0m" , pros.name().display())
+                }
+            }
+            _ => {
+                println!("[{tell:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
+            }
+        }
+        Ok(())
+    }
 } 
 
 pub mod standard {
@@ -276,7 +306,6 @@ pub mod safe {
     use std::{fs::{File, Metadata}, io::ErrorKind, ops::Add, path::PathBuf, process::Output};
 
     use colored::Colorize;
-
     use crate::backend::{standard::tell};
 
     pub trait Safe {
