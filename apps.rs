@@ -39,26 +39,26 @@ pub fn ship( ttype:String, flag:String , the_name_of_the_file:String , output_na
         "tar" => { 
             match flag.trim() {
                 "--load" => {
-                    let mut open = fs::File::open(&the_name_of_the_file).safe_w_res("The file is not found")?;
-                    let make =  fs::File::create(format!("{}.tar", output_name)).safe_w_res("Couldn`t make the file")?;
-                    let ifdir = open.metadata().safe_w_res("The file is not found")?;
+                    let mut open = fs::File::open(&the_name_of_the_file).safe_w_res(Some("The file is not found"))?;
+                    let make =  fs::File::create(format!("{}.tar", output_name)).safe_w_res(Some("Couldn`t make the file"))?;
+                    let ifdir = open.metadata().safe_w_res(Some("The file is not found"))?;
                     if ifdir.is_dir() == true {
                         let mut builder1 = Builder::new(make);
-                        let _apd = builder1.append_dir_all(&output_name, path::Path::new(&the_name_of_the_file)).safe("Couldn1t build the arcive");
-                        let _finsh = builder1.into_inner().safe_mas("Ship completed" , "loaded successfully", "Couldn`t build the archive");
+                        let _apd = builder1.append_dir_all(&output_name, path::Path::new(&the_name_of_the_file)).safe(Some("Couldn1t build the arcive"));
+                        let _finsh = builder1.into_inner().safe_mas("Ship completed" , "loaded successfully", Some("Couldn`t build the archive"));
                     }
 
                     else {
                         let mut builder2 = Builder::new(make);
-                        let _ap = builder2.append_file(&output_name, &mut open).safe("Couldn`t build the arcive");
-                        let _finsh = builder2.into_inner().safe_mas("Ship completed", "loaded successfully", "Couldn`t build the arcive");
+                        let _ap = builder2.append_file(&output_name, &mut open).safe(Some("Couldn`t build the arcive"));
+                        let _finsh = builder2.into_inner().safe_mas("Ship completed", "loaded successfully", Some("Couldn`t build the arcive"));
                     }
                 }
                 "--Unload" => {
-                    let open = fs::File::open(the_name_of_the_file).safe_w_res("the file is not found")?;
+                    let open = fs::File::open(the_name_of_the_file).safe_w_res(Some("the file is not found"))?;
 
                     let mut arc = Archive::new(open);
-                    arc.unpack(output_name).safe_mas("Ship completed", "Unloaded successfully", "Couldn`t unload the arcive");
+                    arc.unpack(output_name).safe_mas("Ship completed", "Unloaded successfully", Some("Couldn`t unload the arcive"));
                 }   
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -81,12 +81,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = BASE64_STANDARD.encode(&readed);
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 "--dec" => {
                     let dec = BASE64_STANDARD.decode(&readed.trim()).unwrap_or_default();
 
-                    fs::write(&output_name, dec).safe_mas("transmute", "decoded successfully", "couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute", "decoded successfully", Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -98,12 +98,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = BASE64_STANDARD_NO_PAD.encode(&readed);
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 "--dec" => {
                     let dec = BASE64_STANDARD_NO_PAD.decode(&readed).unwrap_or_default();
 
-                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -115,12 +115,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = BASE64_URL_SAFE.encode(&readed);
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type)"));
                 }
                 "--dec" => {
                     let dec = BASE64_URL_SAFE.decode(&readed).unwrap_or_default();
 
-                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -132,12 +132,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = hex::encode(&readed);
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 "--dec" => {
                     let dec = hex::decode(&readed).unwrap_or_default();
 
-                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -149,12 +149,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = hex::encode_upper(&readed);
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 "--dec" => {
                     let dec = hex::decode(&readed).unwrap_or_default();
 
-                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -166,12 +166,12 @@ pub fn transmute (ttype:String, flag:String , the_name_of_the_file:String , outp
                 "--enc" => {
                     let enc = urlencoding::encode(&readed).into_owned();
 
-                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, enc).safe_mas("transmute","encoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 "--dec" => {
                     let dec = urlencoding::decode(&readed).unwrap_or_default().into_owned();
             
-                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully","couldn`t write the encoded codic to the file Consider trying abother type");
+                    fs::write(&output_name, dec).safe_mas("transmute","decoded successfully",Some("couldn`t write the encoded codic to the file Consider trying abother type"));
                 }
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
@@ -227,20 +227,20 @@ fn redraw_from_cursor(text: &str, cursor_pos: usize) -> std::io::Result<()> {
 
 pub fn vortex(file_p: &str) -> std::io::Result<()> {
 
-    let open = fs::File::open(&file_p).safe_w_res(&file_p)?;
-    let de = open.metadata().safe_w_res(&file_p)?;
+    let open = fs::File::open(&file_p).safe_w_res(Some(&file_p))?;
+    let de = open.metadata().safe_w_res(Some(&file_p))?;
 
     if de.is_file() == true {
 
-    execute!(stdout(), Clear(ClearType::All)).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    execute!(stdout(), Clear(ClearType::All)).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
     commands::clean()?;
 
-    execute!(stdout(), EnterAlternateScreen).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    execute!(stdout(), EnterAlternateScreen).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
     println!("{}{file_p}", "~".bright_magenta().bold());
 
     let cont = read_file_cont(&file_p)?;
     
-    enable_raw_mode().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());    
+    enable_raw_mode().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));    
     
     let mut text = String::from(&cont);
     let mut cursor_pos: usize = text.len();
@@ -248,7 +248,7 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
     if !text.is_empty() {
         let show = text.replace('\n', "\n\r");
         print!("{}", &show);
-        stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+        stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
     }
 
     loop {
@@ -268,7 +268,7 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                 kind: KeyEventKind::Press, 
                 state: KeyEventState::NONE 
             }) => {
-                fs::write(&file_p, &text).safe("Couldn't write to the file");
+                fs::write(&file_p, &text).safe(Some("Couldn't write to the file"));
                 break;
             }
             
@@ -280,13 +280,13 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
             }) => {
                 text.insert(cursor_pos, c);
                 
-                redraw_from_cursor(&text, cursor_pos).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                redraw_from_cursor(&text, cursor_pos).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
                 cursor_pos += 1;
                 execute!(stdout(), crossterm::cursor::MoveRight(1))
-                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
-                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
             }
             
             Event::Key(KeyEvent { 
@@ -299,7 +299,7 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                 cursor_pos += 1;
                 
                 execute!(stdout(), Clear(ClearType::FromCursorDown))
-                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
                 let remaining = &text[cursor_pos..];
                 let show = remaining.replace('\n', "\n\r");
@@ -309,13 +309,13 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                 let lines_below = remaining.matches('\n').count();
                 if lines_below > 0 {
                     execute!(stdout(), crossterm::cursor::MoveUp(lines_below as u16))
-                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
                 
                 execute!(stdout(), crossterm::cursor::MoveToColumn(0))
-                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
-                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
             }
             
             Event::Key(KeyEvent { 
@@ -331,7 +331,7 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                     if deleted_char == '\n' {
                         
                         execute!(stdout(), crossterm::cursor::MoveUp(1))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                         let lines: Vec<&str> = text[..cursor_pos].split('\n').collect();
                         let col = if let Some(last_line) = lines.last() {
@@ -341,10 +341,10 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                         };
                         
                         execute!(stdout(), crossterm::cursor::MoveToColumn(col as u16))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                         execute!(stdout(), Clear(ClearType::FromCursorDown))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                         let remaining = &text[cursor_pos..];
                         let show = remaining.replace('\n', "\n\r");
@@ -354,14 +354,14 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                         
                         if lines_printed > 0 {
                             execute!(stdout(), crossterm::cursor::MoveUp(lines_printed as u16))
-                                .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                                .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         }
                         execute!(stdout(), crossterm::cursor::MoveToColumn(col as u16))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                     } else {
                         execute!(stdout(), crossterm::cursor::MoveLeft(1))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                         let remaining = &text[cursor_pos..];
                         let current_line_end = remaining.find('\n').unwrap_or(remaining.len());
@@ -371,10 +371,10 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                         
                         let move_back = rest_of_line.len() + 1;
                         execute!(stdout(), crossterm::cursor::MoveLeft(move_back as u16))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     }
                     
-                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
             }
             
@@ -390,19 +390,19 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                         cursor_pos -= 1;
                         
                         execute!(stdout(), crossterm::cursor::MoveUp(1))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         
                         let lines: Vec<&str> = text[..cursor_pos].split('\n').collect();
                         if let Some(last_line) = lines.last() {
                             execute!(stdout(), crossterm::cursor::MoveToColumn(last_line.len() as u16))
-                                .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                                .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                         }
                     } else {
                         cursor_pos -= 1;
                         execute!(stdout(), crossterm::cursor::MoveLeft(1))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     }
-                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
             }
             
@@ -420,9 +420,9 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                     } else {
                         cursor_pos += 1;
                         execute!(stdout(), crossterm::cursor::MoveRight(1))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     }
-                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
             }
             
@@ -439,14 +439,14 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                     
                     cursor_pos = new_pos;
                     execute!(stdout(), crossterm::cursor::MoveUp(1))
-                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     
                     if new_col != col {
                         execute!(stdout(), crossterm::cursor::MoveToColumn(new_col as u16))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     }
                     
-                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
             }
             
@@ -465,44 +465,44 @@ pub fn vortex(file_p: &str) -> std::io::Result<()> {
                     
                     cursor_pos = new_pos;
                     execute!(stdout(), crossterm::cursor::MoveDown(1))
-                        .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                        .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     
                     if new_col != col {
                         execute!(stdout(), crossterm::cursor::MoveToColumn(new_col as u16))
-                            .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                            .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                     }
                     
-                    stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 }
             }
             Event::Key(KeyEvent { code:KeyCode::Char(cap), modifiers:KeyModifiers::SHIFT, kind:KeyEventKind::Press, state:KeyEventState::NONE }) => {
                 text.insert(cursor_pos, cap);
                 
-                redraw_from_cursor(&text, cursor_pos).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                redraw_from_cursor(&text, cursor_pos).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
                 cursor_pos += 1;
                 execute!(stdout(), crossterm::cursor::MoveRight(1))
-                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
-                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
             }
             Event::Key(KeyEvent { code:KeyCode::Char(caps_lock), modifiers:KeyModifiers::NONE, kind:KeyEventKind::Press, state:KeyEventState::CAPS_LOCK }) => {
                 text.insert(cursor_pos, caps_lock);
                 
-                redraw_from_cursor(&text, cursor_pos).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                redraw_from_cursor(&text, cursor_pos).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
                 cursor_pos += 1;
                 execute!(stdout(), crossterm::cursor::MoveRight(1))
-                    .safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                    .safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
                 
-                stdout().flush().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+                stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
             }
             
             _ => {}
         }
     }
 }
-    execute!(stdout(), LeaveAlternateScreen).safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
-    disable_raw_mode().safe(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str());
+    execute!(stdout(), LeaveAlternateScreen).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
+    disable_raw_mode().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
     Ok(())
 }
