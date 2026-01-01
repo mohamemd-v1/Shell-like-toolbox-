@@ -325,7 +325,6 @@ pub mod safe {
     use std::{fs::{File, Metadata}, io::ErrorKind, ops::Add, path::PathBuf, process::Output};
 
     use colored::Colorize;
-    use reqwest::{StatusCode};
     use crate::backend::{standard::tell};
 
     pub trait Safe {
@@ -342,7 +341,7 @@ pub mod safe {
         fn safe_mas(self , mas1:&str , mas1:&str , err_res:&str);
     }
 
-    pub fn errmes(e: Option<&std::io::Error> , e2:Option<&reqwest::Error> , err_res:Option<&str>) {
+    pub fn errmes(e: Option<&std::io::Error> , _e2:Option<String> , err_res:Option<&str>) {
         let path = tell();
 
         let e = e;
@@ -391,63 +390,6 @@ pub mod safe {
                     _ => {
                         eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold())
                     }
-                }
-            }
-        }
-
-        let e2 = e2;
-        if let Some(e2) = e2 {
-            if let Some(e2) = e2.status() {
-                    match e2 {
-                        StatusCode::BAD_GATEWAY => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "received an invalid response from the upstream server.".bright_red().bold() , "502".bright_yellow().bold());
-                        }
-                        StatusCode::BAD_REQUEST => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the request is invalid or malformed.".bright_red().bold() , "400".bright_yellow().bold());
-                        }
-                        StatusCode::CONFLICT => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the request could not be completed due to a resource state conflict".bright_red().bold() , "409".bright_yellow().bold());
-                        }
-                        StatusCode::FAILED_DEPENDENCY => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the request failed because a previous request it depends on failed.".bright_red().bold() , "424".bright_yellow().bold());
-                        }
-                        StatusCode::FORBIDDEN => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "you do not have permission to access this resource.".bright_red().bold() , "403".bright_yellow().bold());
-                        }
-                        StatusCode::GATEWAY_TIMEOUT => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the server did not receive a timely response from the upstream server.".bright_red().bold() , "504".bright_yellow().bold());
-                        }
-                        StatusCode::GONE => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the requested resource is no longer available and will not be available again.".bright_red().bold() , "410".bright_yellow().bold());
-                        }
-                        StatusCode::HTTP_VERSION_NOT_SUPPORTED => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the server does not support the HTTP protocol version used in the request".bright_red().bold() , "505".bright_yellow().bold());
-                        }
-                        StatusCode::INTERNAL_SERVER_ERROR => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the server encountered an unexpected condition that prevented it from fulfilling the request".bright_red().bold() , "500".bright_yellow().bold());
-                        }
-                        StatusCode::METHOD_NOT_ALLOWED => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the HTTP method used is not supported for this resource.".bright_red().bold() , "405".bright_yellow().bold());
-                        }
-                        StatusCode::MISDIRECTED_REQUEST => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the request was directed to a server that is not able to produce a valid response.".bright_red().bold() , "421".bright_yellow().bold());
-                        }
-                        StatusCode::NETWORK_AUTHENTICATION_REQUIRED => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the client needs to authenticate to gain network access.".bright_red().bold() , "511".bright_yellow().bold());
-                        }
-                        StatusCode::NON_AUTHORITATIVE_INFORMATION => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the returned metadata is not from the original server but from a local or third-party copy".bright_red().bold() , "203".bright_yellow().bold());
-                        }
-                        StatusCode::NOT_ACCEPTABLE => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the requested resource cannot generate a response acceptable to the client.".bright_red().bold() , "406".bright_yellow().bold());
-                        }
-                        StatusCode::NOT_EXTENDED => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the request requires further extensions which the server did not receive.".bright_red().bold() , "510".bright_yellow().bold());
-                        }
-                        StatusCode::NOT_FOUND => {
-                            println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the requested resource could not be found on the server".bright_red().bold() , "404".bright_yellow().bold());
-                        }
-                        _ => {}
                 }
             }
         }
@@ -764,16 +706,23 @@ pub mod safe {
     impl Safe for std::result::Result<reqwest::blocking::Response , reqwest::Error> {
         type Out = reqwest::blocking::Response;
 
-        fn safe(self , err_res:Option<&str>) {
+        fn safe(self , _err_res:Option<&str>) {
+            let path = tell();
+
             match self {
-                Ok(_) => return,
-                Err(e) => {
-                    errmes(None,Some(&e), err_res);
+                Ok(o) => {
+                    if o.status().is_client_error() || o.status().is_server_error() {
+                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
+                    }
+                    return;
+                },
+                Err(_) => {
+                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return;
                 }  
             }
         }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
+        fn safe_mas(self , mas1:&str , mas2:&str , _err_res:Option<&str>) {
             let path = tell();
 
             match self {
@@ -786,31 +735,42 @@ pub mod safe {
                     }
                     return;
                 }
-                Err(e) => {
-                    errmes(None,Some(&e), err_res);
+                Err(_) => {
+                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return;
                 }
             }
         }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
+        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , _err_res:Option<&str>) -> Self {
             let path = tell();
 
             match self {
                 Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    if o.status().is_success() {
+                        println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
+                    }
+                    else {
+                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
+                    }
                     return Ok(o);
                 }
                 Err(e) => {
-                    errmes(None, Some(&e), err_res);
+                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return Err(e);
                 }
             }
         }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
+        fn safe_w_res(self , _err_res:Option<&str>) -> Self {
+            let path = tell();
             match self {
-                Ok(o) => return Ok(o),
+                Ok(o) => {
+                    if o.status().is_client_error() || o.status().is_server_error() {
+                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
+                    }
+                    return Ok(o)
+                },
                 Err(e) => {
-                    errmes(None,Some(&e), err_res);
+                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return Err(e);
                 }
             }
