@@ -1,10 +1,9 @@
 pub mod commands {
 use colored::Colorize;
 use sysinfo::{System};
-pub const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
+pub const _GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 use nix::{sys::{self, signal::{*}}, unistd::Pid};
-use reqwest::blocking;
-use crate::backend::{safe::{ Safe, SafeT}, standard::{input, tell}};
+use crate::backend::{safe::{ErrH, HyperkitError, Success, Ugh}, standard::{input, tell}};
 use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn help(helpt:String) {
        match helpt.trim() {
@@ -24,14 +23,12 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
             println!("   *{} {} {} to find the dir of a file" , "enter".green() , "find".bright_blue() , "<FileName>".bright_purple());
             println!("   *{} {} {} to list and lookup prosses" , "enter".green() , "ps".bright_blue() , "<Flag[-SF: search for pros , -A: list all the pros]>".bright_purple());
             println!("   *{} {} {} to stop prosses |{}|" ,  "enter".green() , "stop".bright_blue() , "<PID>".bright_purple() , "#Warning do not even attempt to enter latters only numbers is allowed otherwise it will stop itself!!".bright_red().bold());
-            println!("   *{} {} {} to ping servers or websites to check if they are up" , "enter".green() , "call".bright_blue() , "<IP|URL>".bright_purple() );
         }
         "--built-in-apps" => {
             println!("   *{} {} {} to use the built-in calculator" , "enter".green() , "calc".bright_blue() , "<Math>".purple());
             println!("   *{} {} to know the time" , "enter".green() , "time".bright_blue() );
             println!("   *{} {} {} {} {} {} to make/extract tar files" , "enter".green() , "ship".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
             println!("   *{} {} {} {} {} {} to encode/decode files" , "enter".green() , "transmute".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
-            println!("   *{} {} {} to edit and read files or text" , "enter".green() , "vortex".bright_blue() , "<File>".bright_purple());
         }
         "--about" => {
             println!("{}HyperKit is a modern, extensible, and lightweight command-line environment built to unify the tools you need into one powerful workspace." , "@".bright_green() )
@@ -42,9 +39,6 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
         "transmute" => {
                 println!("   *[{}: base64-PD<pedding> , base64-ST<standerd> , base64-URL<url> , hex<low-case hex> , Hex<uper-case hex> ][{}: --enc {} --dec {}]" , "Types".bright_green().bold() , "flags".bright_blue().bold(), "to encode a file".bright_purple().bold() , "to decode a file".bright_yellow().bold());
         }
-        "vortex" => {
-            println!("  *[{}: {}<To save the file or edits> {}<To quit without saving anything>]" , "codes".bright_green().bold() , "CTRL+s".bright_blue().bold() , "CTRL+q".bright_purple().bold());
-        }
         _ => {
             println!("   *{} {} {} to see all the commands , {} to list all the available built in apps , {} for about" , "Enter".green()  , "help".red() ,"--commands".bright_purple() , "--built-in-apps".bright_purple() , "--about".bright_purple() );
          } 
@@ -52,33 +46,35 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     }
 
    
-    pub fn clean() -> std::io::Result<()> {
+    pub fn clean() -> std::result::Result<() , HyperkitError> {
        print!("\x1B[2J\x1B[1;1H");
-       stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
+       stdout().flush().errh(None)?;
        Ok(())
     }
 
     
-    pub fn go(t:String) -> std::io::Result<()> { 
+    pub fn go(t:&str) -> std::result::Result<() , HyperkitError> { 
         let path = PathBuf::from(&t);
-        env::set_current_dir(&path).safe_mas("Go" , "directory has been changed successfully", Some(&t));
+
+        env::set_current_dir(&path).errh(Some(t.to_string()))._success_res("Go", "directory has been changed successfully").ughf()?;
+
         Ok(())
     }
     
   
-    pub fn  wh() -> std::io::Result<()> {
+    pub fn  wh() -> std::result::Result<() , HyperkitError> {
         let path = tell();
 
-        let wh = env::current_dir().safe_w_res(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()))?;
+        let wh = env::current_dir().errh(None)?;
         println!("[{path:?}]~>{}\x1b[34m{}\x1b[0m" ,"~".bright_green(), wh.display());
         Ok(())
     }
 
     
-    pub fn see () -> std::io::Result<()> {
+    pub fn see () -> std::result::Result<() , HyperkitError> {
         let path = tell();
 
-        let cur = env::current_dir().safe_w_res(None)?;
+        let cur = env::current_dir().errh(None)?;
         let dir = fs::read_dir(cur);
 
         match dir {
@@ -97,7 +93,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     }
 
    
-    pub fn peek(file:String) -> std::io::Result<()> {
+    pub fn peek(file:&str) -> std::result::Result<() , HyperkitError> {
         let path = tell();
         let fe = File::open(&file);
 
@@ -106,33 +102,33 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
                 println!("[{path:?}]~>{}: couldn't open the file due to [{}]" , "Error".red().bold() , "NotFound error".red().bold());
                 println!("[{path:?}]~>Do you want to make this file?");
                 print!("[{path:?}]~>({}/{}):" , "Y".green() , "N".red());
-                stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
+                stdout().flush().errh(None)?;
 
-                let yesorno = input();
+                let yesorno = input()?;
 
                 if yesorno == "Y" {
-                    fs::File::create(&file).safe(Some(&file));
+                    fs::File::create(&file).errh(Some(file.to_string()))?;
                 }
             }
         };
 
-        let fe = &mut fe?;
-
+        let fe = &mut fe.errh(None)?;
         let mut r = String::new();
-        let _read =  fe.read_to_string(&mut r).safe(&file);
 
+        let _read =  fe.read_to_string(&mut r).errh(Some(file.to_string()));
+        
         println!("\x1b[34m{}\x1b[0m" , r);
         Ok(())
     }
 
     
-    pub fn mk(path:String) -> std::io::Result<()> {
-        fs::create_dir(&path).safe_mas("Mk", "Directory created successfully" , Some(&path));
+    pub fn mk(path:&str) -> std::result::Result<() , HyperkitError> {
+        fs::create_dir(&path).errh(Some(path.to_string()))._success_res("Mk", "Directory created successfully").ughf()?;
         Ok(())
     }
 
     
-    pub fn burn(path:String) -> std::io::Result<()> {
+    pub fn burn(path:&str) -> std::result::Result<() , HyperkitError> {
         let tell = tell();
 
         let burn = fs::remove_file(&path);
@@ -150,11 +146,11 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
                         if e.kind() == ErrorKind::DirectoryNotEmpty {
 
                             print!("[{tell:?}]~>[{}/{}]: the Directory is Not Empty do you stil want to delete it? >> " , "Y".bold().green() , "N".bold().red());
-                            stdout().flush().safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
+                            stdout().flush().errh(None)?;
 
-                            let yesorno = input();
+                            let yesorno = input()?;
                             if yesorno == "Y" {
-                                fs::remove_dir_all(&path).safe_mas("burn", "Directory has been burned successfully", Some(&path));
+                                fs::remove_dir_all(&path).errh(Some(path.to_string()))._success_res("burn", "Directory has been burned successfully").ughf()?;
                             }
                         }
                     }
@@ -165,39 +161,42 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
         Ok(())
     }
 
-    pub fn rn(f:String , t:String) -> std::io::Result<()> {
-        fs::rename(&f, &t).safe_mas("rn", "Renamed successfully",Some(format!("{}+{}" , &f , &t).as_str()));
+    pub fn rn(f:&str , t:&str) -> std::result::Result<() , HyperkitError> {
+        let t = format!("{}+{}" , &f , &t);
+
+        fs::rename(&f, &t).errh(Some(t.to_string()))._success_res("rn", "Renamed successfully").ughf()?;
         Ok(())
     }
 
-    pub fn clone(f:String , t:String) -> std::io::Result<()> {
-        fs::copy(&f, &t).safe_mas("clone", "Copied!", format!("{}+{}" , &f , &t).as_str());
+    pub fn clone(f:String , t:String) -> std::result::Result<() , HyperkitError> {
+        fs::copy(&f, &t).errh(Some(t.to_string()))._success_res("clone" , "Copied!").ughf()?;
         Ok(())
     }
 
-    pub fn forge(file:String) -> std::io::Result<()> {
-        fs::File::create(&file).safe_mas("Forge completed!", "File created" , Some(&file));
+    pub fn forge(file:String) -> std::result::Result<(),HyperkitError> {
+        fs::File::create(&file).errh(Some(file.to_string()))._success_res("Forge completed!", "File created").ughf()?;
         Ok(())
     }
 
-    pub fn run(app:String) -> std::io::Result<()> {
+    pub fn run(app:&str) -> std::result::Result<() , HyperkitError> {
         let path = tell();
-        let run = process::Command::new(&app).output().safe_w_res(Some(&app))?;
-
+        let run = process::Command::new(&app).output().errh(Some(app.to_string())).ughf()?;
         println!("[{path:?}]~>\x1b[34m{}\x1b[0m" , String::from_utf8_lossy(&run.stdout));
         Ok(())
     }
 
    
-    pub fn mv(name:String , path:String) -> std::io::Result<()> {
-        fs::copy(&name, format!("{}/{}" , &path , &name)).safe(format!("{}/{}" , &path, &name).as_str());
+    pub fn mv(name:&str , path:&str) -> std::result::Result<() , HyperkitError> {
+        let format = format!("{}/{}" , &name , &path);
+
+        fs::copy(&name, &format).errh(Some(format.to_string()))?;
 
         let delete_eveadnice = fs::remove_file(&name);
 
         if let Err(e) = delete_eveadnice {
             match e.kind() {
                 ErrorKind::IsADirectory => {
-                    fs::remove_dir_all(&name).safe_mas("mv", "moving completed" , Some(format!("{}/{}" , &path, &name).as_str()));
+                    fs::remove_dir_all(&name).errh(Some(format.to_string()))._success_res("mv", "moving completed").ughf()?;
                 }
                 _ => {}
             }
@@ -206,7 +205,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
         Ok(())
     }
 
-    pub fn find(file_path:&str) -> std::io::Result<()> {
+    pub fn find(file_path:&str) -> std::result::Result<() , HyperkitError> {
         use walkdir::*;
         let tell = tell();
         let mut err = false;
@@ -227,7 +226,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
         Ok(())
     }
 
-    pub fn ps(_flag:&str , _pid:usize) -> std::io::Result<()> {
+    pub fn ps(_flag:&str , _pid:usize) -> std::result::Result<(), HyperkitError> {
         use sysinfo::Pid;
         
         let tell = tell();
@@ -250,7 +249,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
                 }
             }
             _ => {
-                println!("[{tell:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag were suplied".red().bold());
+                println!("[{tell:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag was supplied".red().bold());
             }
         }
         Ok(())
@@ -268,23 +267,20 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
             }
         };
     }
-    pub fn call(url:&str) {
-        blocking::get(url).safe_mas("call", "the server or website is up", None);
-    }
 }
 
 pub mod standard {
     use std::{ env::*, io::stdin, path::PathBuf};
     use colored::Colorize;
 
-    use crate::backend::safe::SafeT;
+    use crate::backend::safe::{ErrH, HyperkitError};
 
-    pub fn input() -> String {
+    pub fn input() -> std::result::Result<String , HyperkitError> {
         let mut input = String::new();
-        stdin().read_line(&mut input).safe("Parsing Error");
+        stdin().read_line(&mut input).errh(None)?;
         let input = input.trim().to_string();
 
-        input
+        Ok(input)
     }
 
     pub fn tell() -> PathBuf {
@@ -322,456 +318,214 @@ pub mod tokenization {
 }
 
 pub mod safe {
-    use std::{fs::{File, Metadata}, io::ErrorKind, ops::Add, path::PathBuf, process::Output};
-
+    use core::fmt;
+    use std::{num::{IntErrorKind, ParseIntError}};
     use colored::Colorize;
-    use crate::backend::{standard::tell};
+    use crate::{GITHUBLINK, backend::{clean::ExtractOptions, standard::tell}};
 
-    pub trait Safe {
+    pub type _Result<'h ,T> = std::result::Result<T , HyperkitError>;
+
+    #[derive(Debug)]
+    pub enum HyperkitError {
+        ParsingErr(ParsingErr),
+        InputReadingErr(InputReadingErr),
+        FileError(FileError),
+        ShouldNotHappen,
+    }
+
+    #[derive(Debug)]
+    pub enum FileError {
+        FileNotFound(Option<String>),
+        FileTooLarge(Option<String>),
+        PermissionDenied(Option<String>),
+        ReadOnlyFile(Option<String>),
+        IsADirectory(Option<String>),
+        NotADirectory(Option<String>),
+        UnsupportedFileType(Option<String>),
+        InvalidFilename(Option<String>),
+    }
+
+    #[derive(Debug)]
+    pub enum ParsingErr {
+        NotNumber(Option<String>),
+        ZeroOrEmputy(Option<String>),
+        OverFlow(Option<String>),
+        InvalidDigit(Option<String>),
+    }
+
+    #[derive(Debug)]
+    pub enum InputReadingErr {
+        Interrupted(Option<String>),
+        BadEncoding(Option<String>),
+        StreamClosed(Option<String>),
+        PipeBroken(Option<String>),
+        Blocked(Option<String>),
+        OutOfMemory(Option<String>),
+        Unknown(Option<String>)
+    }
+
+    impl fmt::Display for HyperkitError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                HyperkitError::ShouldNotHappen => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"".bright_red() , GITHUBLINK),
+
+                HyperkitError::ParsingErr(e) => match e {
+                    ParsingErr::NotNumber(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Expected a number, but no input was provided".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ParsingErr::InvalidDigit(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Invalid digits".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ParsingErr::OverFlow(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Number is out of range".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ParsingErr::ZeroOrEmputy(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Zero is not a valid value".bright_red() , err_res.extract().bright_yellow().bold())
+                }
+
+                HyperkitError::FileError(e) => match e{
+                    FileError::FileNotFound(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"the requested resource was not found".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::FileTooLarge(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"The file is to large".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::InvalidFilename(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Invalid file name".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::IsADirectory(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"is a directory".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::NotADirectory(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"is not a directory".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::PermissionDenied(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Permission denied".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::ReadOnlyFile(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Read only file".bright_red() , err_res.extract().bright_yellow().bold()),
+                    FileError::UnsupportedFileType(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Unsupported file type".bright_red() , err_res.extract().bright_yellow().bold()),
+                }
+
+                HyperkitError::InputReadingErr(e) => match e {
+                    InputReadingErr::BadEncoding(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Invalid input encoding".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::Blocked(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Input operation would block".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::Interrupted(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Input operation was interrupted".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::OutOfMemory(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Out of memory while reading input".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::PipeBroken(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Broken pipe while reading input".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::StreamClosed(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Input stream closed unexpectedly".bright_red() , err_res.extract().bright_yellow().bold()),
+                    InputReadingErr::Unknown(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Unknown input error".bright_red() , err_res.extract().bright_yellow().bold()) 
+                }
+            }
+        }
+    } 
+
+    pub trait Success<T> {
         type Out;
 
-        fn safe(self , err_res:Option<&str>);
-        fn safe_mas(self , mas1:&str , mas1:&str , err_res:Option<&str>);
-        fn safe_w_res(self , err_res:Option<&str>) -> Self; 
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self;
+        fn _success(self , mas1:&str , mas2:&str);
+        fn _success_res(self , mas1:&str , mas2:&str) -> Self::Out where Self: Sized;
     }
 
-    pub trait SafeT<T> {
-        fn safe(self , err_res:&str);
-        fn safe_mas(self , mas1:&str , mas1:&str , err_res:&str);
+    pub trait ErrH {
+        type Out;
+
+        fn errh(self , res:Option<String>) -> Self::Out where Self: Sized; 
     }
 
-    pub fn errmes(e: Option<&std::io::Error> , _e2:Option<String> , err_res:Option<&str>) {
-        let path = tell();
+    pub trait Ugh {
+        type Out;
 
-        let e = e;
-        if let Some(e) = e {
-            if let Some(err_res) = err_res {
-                match e.kind() {
-                    ErrorKind::NotFound => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "the requested resource was not found".bright_red().bold() , err_res.bright_yellow().bold());
-                    }
-                    ErrorKind::IsADirectory => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "is a directory".bright_red().bold() , err_res.bright_yellow().bold());
-                    }
-                    ErrorKind::Interrupted => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "operation interrupted".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::InvalidInput => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "invalid input".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::DirectoryNotEmpty => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "directory not empty".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::InvalidFilename => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Invalid file name".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::FileTooLarge => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "The file is to large".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::NotADirectory => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "is not a directory".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::PermissionDenied => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Permission denied".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::ReadOnlyFilesystem => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Read only file".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::InvalidData => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Invalid data".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::StorageFull => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Storage is full try to free up some storage and try again".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    ErrorKind::Unsupported => {
-                        println!("[{path:?}]~>{}: due to [{}: <{}> ]" , "Error".bright_red().bold() , "Unsupported operation".bright_red().bold() , err_res.bright_yellow());
-                    }
-                    _ => {
-                        eprintln!("[{path:?}]~>{}: due to [ \x1b[31m{e}\x1b[0m ]" , "Error".bright_red().bold())
-                    }
-                }
-            }
-        }
-    }   
+        fn ugh(&self);
+        fn ughf(self) -> Self where Self: Sized; 
+    }
 
+    impl<T> Success<T> for std::result::Result<T, HyperkitError> {
+        type Out = std::result::Result<T , HyperkitError>;
 
-    impl Safe for std::io::Result<File> {
-        type Out = File;
-
-        fn safe(self , err_res:Option<&str>) {
-            match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
+        fn _success(self , mas1:&str , mas2:&str) {
             let path = tell();
 
             match self {
                 Ok(_) => {
                     println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                },
-
-                Err(e) => {
-                    errmes(Some(&e), None, err_res);
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
-            let path = tell();
-
-            let s = match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    o
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            };
-            return Ok(s);
-        }
-    }
-    
-    impl<T: Add<Output = T> + Copy > SafeT<T> for std::io::Result<T> {
-        fn safe(self , err_res:&str) {
-            match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e), None,Some(err_res));
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:&str )  {
-            let path = tell();
-
-            match self {
-                Ok(_) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, Some(err_res));
-                    return;
-                }
-            }
-        }
-    }
-
-    impl Safe for std::io::Result<PathBuf> {
-        type Out = PathBuf;
-
-        fn safe(self , err_res:Option<&str>)  {
-             match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
-            let path = tell();
-
-            match self {
-                Ok(_) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e), None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                },
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
-            let path = tell();
-
-            let s = match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    o
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            };
-            return Ok(s);
-        }
-    }
-
-    impl Safe for std::io::Result<()> {
-        type Out = ();
-
-        fn safe(self , err_res:Option<&str>) {
-            match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e),None ,err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
-            let path = tell();
-
-            match self {
-                Ok(_) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                },
-
-                Err(e) => {
-                    errmes(Some(&e),None,  err_res);
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
-            let path = tell();
-
-            let s = match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    o
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            };
-            return Ok(s);
-        }
-    }
-    
-    impl Safe for std::io::Result<Metadata> {
-        type Out = Metadata;
-
-        fn safe(self , err_res:Option<&str> ) {
-            match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
-            let path = tell();
-
-             match self {
-                Ok(_) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e), None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                },
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
-            let path = tell();
-
-            let s = match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    o
-                }
-                Err(e) => {
-                    errmes(Some(&e), None,err_res);
-                    return Err(e);
-                }
-            };
-            return Ok(s);
-        }
-    }
-
-    impl Safe for std::io::Result<Output> {
-        type Out = Output;
-
-        fn safe(self , err_res:Option<&str> ) {
-            match self {
-                Ok(_) => return,
-
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , err_res:Option<&str>) {
-            let path = tell();
-
-             match self {
-                Ok(_) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    return;
-                }
-                Err(e) => {
-                    errmes(Some(&e), None, err_res);
-                    return;
-                }
-            }
-        }
-        fn safe_w_res(self , err_res:Option<&str>) -> Self {
-            match self {
-                Ok(o) => {
-                    return Ok(o);
-                },
-
-                Err(e) => {
-                    errmes(Some(&e),None ,err_res);
-                    return Err(e);
-                }
-            }
-        }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , err_res:Option<&str>) -> Self {
-            let path = tell();
-
-            let s = match self {
-                Ok(o) => {
-                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    o
-                }
-                Err(e) => {
-                    errmes(Some(&e),None, err_res);
-                    return Err(e);
-                }
-            };
-            return Ok(s);
-        }
-    }
-    
-    impl Safe for std::result::Result<reqwest::blocking::Response , reqwest::Error> {
-        type Out = reqwest::blocking::Response;
-
-        fn safe(self , _err_res:Option<&str>) {
-            let path = tell();
-
-            match self {
-                Ok(o) => {
-                    if o.status().is_client_error() || o.status().is_server_error() {
-                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
-                    }
-                    return;
-                },
-                Err(_) => {
-                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
-                    return;
-                }  
-            }
-        }
-        fn safe_mas(self , mas1:&str , mas2:&str , _err_res:Option<&str>) {
-            let path = tell();
-
-            match self {
-                Ok(o) => {
-                    if o.status().is_success() {
-                        println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    }
-                    else {
-                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
-                    }
-                    return;
+                    return;        
                 }
                 Err(_) => {
-                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return;
                 }
-            }
+            }    
         }
-        fn _safe_mas_w_res(self , mas1:&str , mas2:&str , _err_res:Option<&str>) -> Self {
+
+        fn _success_res(self , mas1:&str , mas2:&str ) -> Self::Out where Self: Sized {
             let path = tell();
 
             match self {
                 Ok(o) => {
-                    if o.status().is_success() {
-                        println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
-                    }
-                    else {
-                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
-                    }
+                    println!("[{path:?}]~>{}: [{}]" , mas1.bright_green().bold() , mas2.bright_green().bold());
                     return Ok(o);
                 }
                 Err(e) => {
-                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
                     return Err(e);
+                }
+            }  
+        }
+    }
+
+    impl<T> ErrH for std::io::Result<T> {
+        type Out = std::result::Result<T, HyperkitError> ;
+
+        fn errh(self , res: Option<String>) -> Self::Out where Self: Sized {
+            match self {
+                Ok(o) => return Ok(o),
+                Err(e) => {
+                    let hypere = match e.kind() {
+                        std::io::ErrorKind::NotFound => HyperkitError::FileError(FileError::FileNotFound(res)),
+                        std::io::ErrorKind::FileTooLarge => HyperkitError::FileError(FileError::FileTooLarge(res)),
+                        std::io::ErrorKind::NotADirectory => HyperkitError::FileError(FileError::NotADirectory(res)),
+                        std::io::ErrorKind::IsADirectory => HyperkitError::FileError(FileError::IsADirectory(res)),
+                        std::io::ErrorKind::InvalidFilename => HyperkitError::FileError(FileError::InvalidFilename(res)),
+                        std::io::ErrorKind::PermissionDenied => HyperkitError::FileError(FileError::PermissionDenied(res)),
+                        std::io::ErrorKind::ReadOnlyFilesystem => HyperkitError::FileError(FileError::ReadOnlyFile(res)),
+                        std::io::ErrorKind::Unsupported => HyperkitError::FileError(FileError::UnsupportedFileType(res)),
+
+                        std::io::ErrorKind::Interrupted => HyperkitError::InputReadingErr(InputReadingErr::Interrupted(res)),
+                        std::io::ErrorKind::InvalidData => HyperkitError::InputReadingErr(InputReadingErr::BadEncoding(res)),
+                        std::io::ErrorKind::BrokenPipe => HyperkitError::InputReadingErr(InputReadingErr::PipeBroken(res)),
+                        std::io::ErrorKind::UnexpectedEof => HyperkitError::InputReadingErr(InputReadingErr::StreamClosed(res)),
+                        std::io::ErrorKind::OutOfMemory => HyperkitError::InputReadingErr(InputReadingErr::OutOfMemory(res)),
+                        std::io::ErrorKind::Other => HyperkitError::InputReadingErr(InputReadingErr::Unknown(res)),
+                        std::io::ErrorKind::WouldBlock => HyperkitError::InputReadingErr(InputReadingErr::Blocked(res)),
+
+                        _ => HyperkitError::ShouldNotHappen
+                    };
+                    return Err(hypere);
                 }
             }
         }
-        fn safe_w_res(self , _err_res:Option<&str>) -> Self {
-            let path = tell();
+    }
+
+    impl<T> ErrH for core::result::Result<T , ParseIntError> {
+        type Out = std::result::Result<T , HyperkitError>;
+
+        fn errh(self , res:Option<String>) -> Self::Out where Self: Sized {
             match self {
-                Ok(o) => {
-                    if o.status().is_client_error() || o.status().is_server_error() {
-                        println!("[{path:?}]~>{}: HTTP Status Code [{}]", "Error".bright_red().bold(), o.status().as_u16().to_string().bright_yellow().bold());
-                    }
-                    return Ok(o)
-                },
+                Ok(o) => return Ok(o),
                 Err(e) => {
-                    println!("[{path:?}]~>{}: due to {}", "Error".bright_red().bold(), "the link or ip is not vaild".bright_yellow().bold());
-                    return Err(e);
+                    let hypere = match e.kind() {
+                        IntErrorKind::Empty => HyperkitError::ParsingErr(ParsingErr::NotNumber(res)),
+                        IntErrorKind::InvalidDigit => HyperkitError::ParsingErr(ParsingErr::InvalidDigit(res)),
+                        IntErrorKind::NegOverflow => HyperkitError::ParsingErr(ParsingErr::OverFlow(res)),
+                        IntErrorKind::PosOverflow => HyperkitError::ParsingErr(ParsingErr::OverFlow(res)),
+                        IntErrorKind::Zero => HyperkitError::ParsingErr(ParsingErr::ZeroOrEmputy(res)),
+
+                        _ => HyperkitError::ShouldNotHappen
+                    };
+
+                    return Err(hypere);
+                }
+            }
+        }
+    }
+
+    impl<T> Ugh for std::result::Result<T , HyperkitError> {
+        type Out = std::result::Result<T , HyperkitError>;
+
+        fn ugh(&self) {
+            let path = tell();
+
+            if let Err(e) = self {
+                eprintln!("[{path:?}]~>{e}");
+            }
+        }
+        fn ughf(self) -> Self where Self::Out : Sized {
+            let path = tell();
+
+            match self {
+                Ok(o) => return Ok(o),
+                Err(e) => {
+                    eprintln!("[{path:?}]~>{e}");
+                    return Err(e)
                 }
             }
         }
@@ -779,13 +533,39 @@ pub mod safe {
 }
 
 pub mod clean {
-    use std::{fs::{File }, io::Read};
-    use crate::{backend::safe::{Safe, SafeT}};
-    
-    pub fn read_file_cont(path:&str) -> std::io::Result<String> {
-        let mut txtf = File::open(&path).safe_w_res(Some(&path))?;
+    use std::{fs::File, io::Read};
+
+    use colored::Colorize;
+
+    use crate::backend::safe::HyperkitError;
+
+    pub trait ExtractOptions {
+        type Out;
+
+        fn extract(&self) -> Self::Out where Self: Sized;
+    }
+
+    impl<T: Default + Clone> ExtractOptions for Option<T> {
+        type Out = T;
+
+        fn extract(&self) -> Self::Out where Self: Sized {
+            if let Some(o) = self {
+                return o.clone();
+            }
+            else {
+                println!("[{}]~> due to {}" , "Error".bright_red().bold(), "extracting faild".bright_red().bold());
+                return T::default();
+            }
+        }
+    }
+       
+    pub fn read_file_cont(path:&str) -> std::result::Result<String , HyperkitError> {
+        use super::safe::*;
+
+        let mut txtf = File::open(&path).errh(Some(path.to_string()))?;
+
         let mut readed = String::new();
-        txtf.read_to_string(&mut readed).safe(&path);
+        txtf.read_to_string(&mut readed).errh(Some(path.to_string()))?;
         return Ok(readed);
     }
 }
