@@ -2,10 +2,35 @@ mod backend;
 mod apps;
 use crate::backend::safe::{ ErrH, Ugh};
 use crate::backend::{commands, standard::tell, tokenization::* };
-use std::{env::*};
+use std::{env::* , borrow::Cow::{self, Owned}};
 use colored::*;
-use rustyline::DefaultEditor;
-use rustyline::error::ReadlineError;
+
+use rustyline::{Completer, Hinter, Validator , error::ReadlineError, completion::FilenameCompleter , highlight::{CmdKind, Highlighter, MatchingBracketHighlighter}, hint::HistoryHinter, 
+validate::MatchingBracketValidator , Cmd , CompletionType , Config , EditMode, Editor , KeyEvent , Helper 
+};
+
+#[derive(Helper , Completer , Hinter , Validator)]
+pub struct Enveditor {
+    #[rustyline(Completer)]
+    comp:FilenameCompleter,
+    hig:MatchingBracketHighlighter,
+    #[rustyline(Validator)]
+    val:MatchingBracketValidator,
+    #[rustyline(Hinter)]
+    hin:HistoryHinter,
+}
+
+impl Highlighter for Enveditor {
+    fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
+        Owned("\x1b[1m".to_owned() + hint + "\x1b[0m")
+    }
+    fn highlight<'l>(&self, line: &'l str, pos: usize) -> Cow<'l, str> {
+        self.hig.highlight(line, pos)
+    }
+    fn highlight_char(&self, line: &str, pos: usize, kind: CmdKind) -> bool {
+        self.hig.highlight_char(line, pos, kind)
+    }
+}
 
 const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 
@@ -21,15 +46,38 @@ fn main() {
 
     let _ = set_current_dir(home).errh(None);
 
-    let mut def = match DefaultEditor::new() {
-        Ok(o) => o,
-        Err(e) => {
-            let tell = tell();
-            eprintln!("[{tell:?}]~>{}: due to {e}" , "Error".red());
-            return;
-        }
+    let configdef = Config::builder()
+    .history_ignore_space(true)
+    .completion_type(CompletionType::List)
+    .edit_mode(EditMode::Emacs)
+    .build();
+
+    let enveditor = Enveditor {
+        hig:MatchingBracketHighlighter::new(),
+        comp:FilenameCompleter::new(),
+        val:MatchingBracketValidator::new(),
+        hin:HistoryHinter::new(),
     };
 
+
+    let mut def = Editor::with_config(configdef).unwrap();
+    def.set_helper(Some(enveditor));
+    def.bind_sequence(KeyEvent::alt('f'), Cmd::ForwardSearchHistory);
+    def.bind_sequence(KeyEvent::alt('b'), Cmd::HistorySearchBackward);
+
+
+    def.load_history("/home/mohammed/programming/Rust/practice/HyperKit/hyper/hyperhis.txt").unwrap_or_else(|e| {
+        let path = tell();
+        match e {
+            ReadlineError::Io(e) => {
+                match e.kind() {
+                    std::io::ErrorKind::NotFound => eprintln!("[{path:?}]~>{} due to {}" , "Error".bold().bright_red() , "History file doesn't exist".bright_red().bold()),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    });
   loop {
     let path = tell();
     
@@ -166,4 +214,7 @@ fn main() {
           }
       }
    }
+   let path = tell();
+    def.save_history("/home/mohammed/programming/Rust/practice/HyperKit/hyper/hyperhis.txt").unwrap_or_else(|e| 
+        {eprintln!("[{path:?}]~>{}: due to {}" , "Error".bright_red().bold() , e.to_string().bright_red().bold())});
 }
