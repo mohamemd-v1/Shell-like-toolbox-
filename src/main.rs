@@ -1,6 +1,6 @@
 mod backend;
 mod apps;
-use crate::backend::safe::Safe;
+use crate::backend::safe::{ ErrH, Ugh};
 use crate::backend::{commands, standard::tell, tokenization::* };
 use std::{env::*};
 use colored::*;
@@ -19,7 +19,7 @@ fn main() {
         }
     };
 
-    set_current_dir(home).safe(Some(format!("code:404 , this error shouldn`t occuer , report it to {}" , GITHUBLINK).as_str()));
+    let _ = set_current_dir(home).errh(None);
 
     let mut def = match DefaultEditor::new() {
         Ok(o) => o,
@@ -66,53 +66,53 @@ fn main() {
             commands::help(tok1);
         }
         "clean" => {
-            commands::clean().safe(None);
+            commands::clean().unwrap_or_default();
         }
         "go" => {
             let tok2  = token(&data, 1);
             if &tok2 == "back" {
-                commands::go("..".to_string()).safe(None);
+                commands::go("..").unwrap_or_default();
             }
             else {
                 let tok2 = token(&data, 1);
-                commands::go(tok2).safe(None);
+                commands::go(&tok2).unwrap_or_default();
             }
         }
         "wh" => {
-            commands::wh().safe(None);
+            commands::wh().unwrap_or_default();
         }
         "see" => {
-            commands::see().safe(None);
+            commands::see().unwrap_or_default();
         }
         "peek" => {
             let tok2 = token(&data, 1);
-            commands::peek(tok2).safe(None);
+            commands::peek(&tok2).unwrap_or_default();
         }
         "mk" => {
             let tok2 = token(&data, 1);
-            commands::mk(tok2).safe(None);
+            commands::mk(&tok2).unwrap_or_default();
         }
         "burn" => {
             let tok2 = token(&data, 1);
-            commands::burn(tok2).safe(None);
+            commands::burn(&tok2).unwrap_or_default();
         }
         "rn" => {
             let tok1 = token(&data, 1);
             let tok2 = token(&data, 2);
-            commands::rn(tok1 , tok2).safe(None);
+            commands::rn(&tok1 , &tok2).unwrap_or_default();
         }
         "clone" => {
             let tok1 = token(&data, 1);
             let tok2 = token(&data, 2);
-            commands::clone(tok1 , tok2).safe(None);
+            commands::clone(tok1 , tok2).unwrap_or_default();
         }
         "forge" => {
             let tok1 = token(&data, 1);
-            commands::forge(tok1).safe(None);
+            commands::forge(tok1).unwrap_or_default();
         }
         "run" => {
             let tok1 = token(&data , 1);
-            commands::run(tok1).safe(None);
+            commands::run(&tok1).unwrap_or_default();
         }
         "cal" => {
             let tok1 = token(&data , 1);
@@ -124,45 +124,36 @@ fn main() {
         "mv" => {
             let tok1 = token(&data, 1);
             let tok2 = token(&data, 2);
-            commands::mv(tok1, tok2).safe(None);
+            commands::mv(&tok1, &tok2).unwrap_or_default();
         }
         "ship" => {
             let ttype = token(&data, 1);
             let flag  = token(&data, 2);
             let fname = token(&data, 3);
             let outname = token(&data, 4);
-            apps::ship(ttype, flag , fname , outname).safe(None);
+            apps::ship(ttype, flag , fname , outname).unwrap_or_default();
         }
         "transmute" => {
             let ttype = token(&data, 1);
             let flag  = token(&data, 2);
             let fname = token(&data, 3);
             let outname = token(&data, 4);
-            apps::transmute(ttype, flag, fname, outname).safe(None);
-        }
-        "vortex" => {
-            let fpath = token(&data, 1);
-            apps::vortex(&fpath).safe(None);
+            apps::transmute(&ttype, &flag, &fname, &outname).unwrap_or_default();
         }
         "find" => {
             let fpath = token(&data, 1);
-            commands::find(&fpath).safe(None);
+            commands::find(&fpath).ugh();
         }
         "ps" => {
             let tok1 = token(&data, 1);
             let tok2 = token(&data, 2);
             let tok2 = tok2.parse().map(|e: usize| e as usize).unwrap_or_default();
             
-            commands::ps(&tok1 , tok2).safe(None);
+            commands::ps(&tok1 , tok2).ugh();
         }
         "stop" => {
-            let tok1 = token(&data, 1).parse().map(|e:i32| e as i32).unwrap_or_default();
+            let tok1 = token(&data, 1).parse().map(|e:i32| e as i32).errh(Some(tok1.to_string())).unwrap_or_default();
             commands::stop(tok1);    
-            
-        }
-        "call" => {
-            let tok1 = token(&data, 1);
-            commands::call(&tok1);
         }
         "end" => {
             break;
