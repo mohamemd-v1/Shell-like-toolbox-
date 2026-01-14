@@ -293,27 +293,21 @@ pub mod standard {
     }
 }
 
-pub mod tokenization {
-    use colored::Colorize;
+pub mod parser {
+    use crate::backend::safe::HyperkitError;
 
-    pub fn proc(input:String) -> Vec<String> {
-        let split = match shlex::split(&input) {
-            Some(o) => o,
-            None => {
-                eprintln!("([Error]~>{}: due to Tokenizer is not working!!" , "Error".red());
-                return Vec::new();
-            }
-        };
-        split
+    pub fn parser(input:&str) -> Vec<&str> {
+        let parse:Vec<&str> = input.split_whitespace().collect();
+        return parse;
     }
-    pub fn token(data:&[String] , index:usize ) -> String {
-        let token = match data.get(index).map(|s| s.as_str()) {
+    pub fn token(data:&Vec<&str> , index:usize ) -> std::result::Result<String , HyperkitError> {
+        let token = match data.get(index) {
             Some(t) => t,
             None => {
-                return "".to_string();
+                return Err(HyperkitError::ParsingErr(super::safe::ParsingErr::InvalidDigit(Some("Coludn't parse the tokens".to_string()))));                
             }
         };
-        token.to_string()
+        return Ok(token.to_string())
     }
 }
 
