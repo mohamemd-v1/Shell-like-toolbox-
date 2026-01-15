@@ -1,9 +1,12 @@
-use std::{ fs, path};
+use core::str;
+use std::io::{Read, Write};
+use std::{ env, fs, path};
 use colored::*;
 use evalexpr::*;
 use chrono::*;
 
 use tar::{Archive};
+use zip::write::SimpleFileOptions;
 use crate::backend::safe::Ugh;
 use crate::backend::standard::tell;
 
@@ -33,12 +36,9 @@ pub fn time() {
     println!("[{path:?}]~>[{time}]");
 }
 
-
-pub fn ship( ttype:String, flag:String , the_name_of_the_file:String , output_name:String) -> std::result::Result<() , HyperkitError> {
+pub fn tar(flag:&str , the_name_of_the_file:&str , output_name:&str) -> std::result::Result<() , HyperkitError> {
   use tar::{Builder};
   let path = tell();
-    match ttype.trim() {
-        "tar" => { 
             match flag.trim() {
                 "--load" => {
                     let mut open = fs::File::open(&the_name_of_the_file).errh(Some("The file is not found".to_string())).ughf()?;
@@ -47,32 +47,98 @@ pub fn ship( ttype:String, flag:String , the_name_of_the_file:String , output_na
                     if ifdir.is_dir() == true {
                         let mut builder1 = Builder::new(make);
                         let _apd = builder1.append_dir_all(&output_name, path::Path::new(&the_name_of_the_file)).errh(Some("Couldn't build the arcive".to_string())).ughf()?;
-                        let _finsh = builder1.into_inner().errh(Some("Couldn't build the arcive".to_string()))._success_res("Ship completed", "loaded successfully").ughf()?;
+                        let _finsh = builder1.into_inner().errh(Some("Couldn't build the arcive".to_string()))._success_res("Tar completed", "loaded successfully").ughf()?;
                     }
 
                     else {
                         let mut builder2 = Builder::new(make);
                         let _ap = builder2.append_file(&output_name, &mut open).errh(Some("Couldn`t build the arcive".to_string())).ughf()?;
-                        let _finsh = builder2.into_inner().errh(Some("Couldn't build the arcive".to_string()))._success_res("Ship completed", "loaded successfully").ughf()?;
+                        let _finsh = builder2.into_inner().errh(Some("Couldn't build the arcive".to_string()))._success_res("Tar completed", "loaded successfully").ughf()?;
                     }
                 }
                 "--Unload" => {
                     let open = fs::File::open(the_name_of_the_file).errh(Some("NotFound".to_string())).ughf()?;
 
                     let mut arc = Archive::new(open);
-                    arc.unpack(output_name).errh(Some("Couldn't build the arcive".to_string()))._success_res("Ship completed", "Unloaded successfully").ughf()?;
+                    arc.unpack(output_name).errh(Some("Couldn't build the arcive".to_string()))._success_res("Tar completed", "Unloaded successfully").ughf()?;
                 }   
                 _ => {
                     println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag was supplied".red().bold());
                 }
-            }
         }
+        Ok(())
+}
+
+pub struct ZipArg<'z> {
+    pub n1:&'z str,
+    pub n2:&'z str,
+    pub n3:&'z str,
+    pub f1:&'z str,
+    pub f2:&'z str,
+    pub f3:&'z str
+}
+
+pub fn zip(flags:&str ,file_name:&str  , ziparg:ZipArg) -> std::result::Result<() , HyperkitError> {
+
+    let args = ziparg;
+
+    match flags.trim() {
+        "--New-Zip" => {
+            let curr = env::current_dir().errh(Some("Couldn't extarct the path".to_string())).ughf()?;
+            let creat = std::fs::File::create(format!("{}/{}" , &curr.to_string_lossy().to_string() , &file_name)).errh(Some(curr.to_string_lossy().to_string())).ughf()?;
+
+            let mut zip = zip::ZipWriter::new(creat);
+            zip.add_directory("zip/", SimpleFileOptions::default()).errh(None)?;
+
+            let config = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored)
+            .unix_permissions(0o755);
+            
+            if args.n1 == "-N1" {
+                zip.start_file(args.f1 , config).errh(Some(args.f1.to_string())).ughf()?;
+            }
+            if args.n2 == "-N2" {
+                zip.start_file(args.f2 , config).errh(Some(args.f2.to_string())).ughf()?;
+            }
+            if args.n3 == "-N3" {
+                zip.start_file(args.f3 , config).errh(Some(args.f3.to_string())).ughf()?;
+            }
+
+            if args.n1 == "-E1" {   
+                let mut open1 = fs::File::open(args.f1).errh(Some(args.f1.to_string())).ughf()?;
+                let mut read = Vec::new();
+                open1.read_to_end(&mut read).errh(None).ughf()?;
+
+                zip.start_file(args.f1, config).errh(Some(args.f1.to_string())).ughf()?;
+                zip.write_all(&mut read).errh(None).ughf()?;
+            }
+            if args.n2 == "-E2" {
+                let mut open2 = fs::File::open(args.f2).errh(Some(args.f2.to_string())).ughf()?;
+                let mut read = Vec::new();
+                open2.read_to_end(&mut read).errh(None).ughf()?;
+
+                zip.start_file(args.f2, config).errh(Some(args.f2.to_string())).ughf()?;
+                zip.write_all(&mut read).errh(None).ughf()?;
+            }
+            if args.n3 == "-E3" {
+                let mut open3 = fs::File::open(args.f3).errh(Some(args.f3.to_string())).ughf()?;
+                let mut read = Vec::new();
+                open3.read_to_end(&mut read).errh(None).ughf()?;
+
+                zip.start_file(args.f3, config).errh(Some(args.f3.to_string())).ughf()?;
+                zip.write_all(&mut read).errh(None).ughf()?;
+            }
+            zip.finish().errh(None).ughf()._success_res("Zip", "Done")?;
+        }
+        "--FZip" => todo!(),
+
         _ => {
-            println!("[{path:?}]~>{}: due to [{}]" , "Error".red().bold() , "No type was supplied".red().bold());
+            todo!()
         }
     }
     Ok(())
 }
+
 
 pub fn transmute (ttype:&str, flag:&str , the_name_of_the_file:&str , output_name:&str) -> std::result::Result<() , HyperkitError> {
     let path = tell();
