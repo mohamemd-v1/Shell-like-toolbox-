@@ -1,5 +1,7 @@
+
     mod backend;
     mod apps;
+    use crate::apps::{ZipArg, zip};
     use crate::backend::safe::{ ErrH, HyperkitError, Ugh};
     use crate::backend::{commands, standard::tell, parser::* };
     use std::{env::* , borrow::Cow::{self, Owned}};
@@ -174,12 +176,30 @@
                 let tok2 = token(&data, 2)?;
                 commands::mv(&tok1, &tok2).unwrap_or_default();
             }
-            "ship" => {
-                let ttype = token(&data, 1)?;
-                let flag  = token(&data, 2)?;
-                let fname = token(&data, 3)?;
-                let outname = token(&data, 4)?;
-                apps::ship(ttype, flag , fname , outname).unwrap_or_default();
+            "tar" => {
+                let flag  = token(&data, 1)?;
+                let fname = token(&data, 2)?;
+                let outname = token(&data, 3)?;
+                apps::tar(&flag , &fname , &outname).unwrap_or_default();
+            }
+            "zip" => {
+                let flag = token(&data, 1)?;
+                let fname = token(&data, 2)?;
+                let n1 = token(&data, 3)?;
+                let f1 = token(&data, 4)?;
+                let n2 = token(&data, 5)?;
+                let f2 = token(&data, 6)?;
+                let n3 = token(&data, 7)?;
+                let f3 = token(&data, 8)?;
+                let ziparg = ZipArg {
+                    n1:&n1,
+                    n2:&n2,
+                    n3:&n3,
+                    f1:&f1,
+                    f2:&f2,
+                    f3:&f3,
+                };
+                zip(&flag, &fname, ziparg).unwrap_or_default();
             }
             "transmute" => {
                 let ttype = token(&data, 1)?;
