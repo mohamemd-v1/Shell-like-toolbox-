@@ -27,17 +27,18 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
         "--built-in-apps" => {
             println!("   *{} {} {} to use the built-in calculator" , "enter".green() , "calc".bright_blue() , "<Math>".purple());
             println!("   *{} {} to know the time" , "enter".green() , "time".bright_blue() );
-            println!("   *{} {} {} {} {} {} to make/extract tar files" , "enter".green() , "ship".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
+            println!("   *{} {} {} {} {} to make/extract tar files" , "enter".green() , "tar".bright_blue() , "<Flag>".bright_purple(), "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
             println!("   *{} {} {} {} {} {} to encode/decode files" , "enter".green() , "transmute".bright_blue() , "<Type>".bright_purple(), "<Flag>".bright_yellow() , "<File-Name>".bright_cyan() , "<File-Outpot-Name>".bright_magenta());
+            println!("   *{} {} {} {} {} {} {} {} {} to make/extract zip files" , "enter".green() , "zip".bright_blue() , "<Name>".bright_purple() , "<Flag>".bright_yellow(), "<Name/Path>".bright_cyan() , "<Flag2>".bright_yellow() , "<Name/Path2>".bright_cyan() , "<Flag3>".bright_yellow() , "<Name/Path3>".bright_cyan());
         }
         "--about" => {
             println!("{}HyperKit is a modern, extensible, and lightweight command-line environment built to unify the tools you need into one powerful workspace." , "@".bright_green() )
         }
-        "ship" => {
-                println!("   *[{}: tar][{}: --load {} --Unload {}]" , "Types".bright_green().bold() , "flags".bright_blue().bold(), "to make an arcive".bright_purple().bold() , "to extract an arcive".bright_yellow().bold());
-        }
         "transmute" => {
                 println!("   *[{}: base64-PD<pedding> , base64-ST<standerd> , base64-URL<url> , hex<low-case hex> , Hex<uper-case hex> ][{}: --enc {} --dec {}]" , "Types".bright_green().bold() , "flags".bright_blue().bold(), "to encode a file".bright_purple().bold() , "to decode a file".bright_yellow().bold());
+        }
+        "zip" => {
+            println!("   *[{}: -N:{} , -E:{}]" , "Flags".bright_blue().bold() , "New File".bright_yellow().bold() , "Exsited File".bright_yellow().bold());
         }
         _ => {
             println!("   *{} {} {} to see all the commands , {} to list all the available built in apps , {} for about" , "Enter".green()  , "help".red() ,"--commands".bright_purple() , "--built-in-apps".bright_purple() , "--about".bright_purple() );
@@ -315,6 +316,7 @@ pub mod safe {
     use core::fmt;
     use std::{num::{IntErrorKind, ParseIntError}};
     use colored::Colorize;
+    use zip::result::ZipError;
     use crate::{GITHUBLINK, backend::{clean::ExtractOptions, standard::tell}};
 
     pub type _Result<'h ,T> = std::result::Result<T , HyperkitError>;
@@ -324,6 +326,7 @@ pub mod safe {
         ParsingErr(ParsingErr),
         InputReadingErr(InputReadingErr),
         FileError(FileError),
+        ArchiveErr(ArchiveErr),
         ShouldNotHappen,
     }
 
@@ -358,6 +361,14 @@ pub mod safe {
         Unknown(Option<String>)
     }
 
+    #[derive(Debug)]
+    pub enum ArchiveErr {
+        PassWordNotVaild(Option<String>),
+        FileNotFound(Option<String>),
+        UnsupportedArc(Option<String>),
+        InvalidArchive(Option<String>)
+    }
+
     impl fmt::Display for HyperkitError {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
@@ -370,7 +381,7 @@ pub mod safe {
                     ParsingErr::ZeroOrEmputy(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Zero is not a valid value".bright_red() , err_res.extract().bright_yellow().bold())
                 }
 
-                HyperkitError::FileError(e) => match e{
+                HyperkitError::FileError(e) => match e {
                     FileError::FileNotFound(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"the requested resource was not found".bright_red() , err_res.extract().bright_yellow().bold()),
                     FileError::FileTooLarge(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"The file is to large".bright_red() , err_res.extract().bright_yellow().bold()),
                     FileError::InvalidFilename(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Invalid file name".bright_red() , err_res.extract().bright_yellow().bold()),
@@ -389,6 +400,13 @@ pub mod safe {
                     InputReadingErr::PipeBroken(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Broken pipe while reading input".bright_red() , err_res.extract().bright_yellow().bold()),
                     InputReadingErr::StreamClosed(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Input stream closed unexpectedly".bright_red() , err_res.extract().bright_yellow().bold()),
                     InputReadingErr::Unknown(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"Unknown input error".bright_red() , err_res.extract().bright_yellow().bold()) 
+                }
+
+                HyperkitError::ArchiveErr(e) => match e {
+                    ArchiveErr::FileNotFound(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"File not found".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ArchiveErr::InvalidArchive(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"invalid Zip archive".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ArchiveErr::PassWordNotVaild(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"provided password is incorrect".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ArchiveErr::UnsupportedArc(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"unsupported Zip archive".bright_red() , err_res.extract().bright_yellow().bold())
                 }
             }
         }
@@ -496,6 +514,40 @@ pub mod safe {
                         _ => HyperkitError::ShouldNotHappen
                     };
 
+                    return Err(hypere);
+                }
+            }
+        }
+    }
+
+    impl<T> ErrH for zip::result::ZipResult<T> {
+        type Out = std::result::Result<T , HyperkitError>;
+
+        fn errh(self , res:Option<String>) -> Self::Out where Self: Sized {
+            match self {
+                Ok(o) => Ok(o),
+                Err(e) => {
+                    let hypere = match e {
+                        ZipError::Io(s) => match s.kind() {
+                            std::io::ErrorKind::NotFound => HyperkitError::FileError(FileError::FileNotFound(res)),
+                            std::io::ErrorKind::FileTooLarge => HyperkitError::FileError(FileError::FileTooLarge(res)),
+                            std::io::ErrorKind::NotADirectory => HyperkitError::FileError(FileError::NotADirectory(res)),
+                            std::io::ErrorKind::IsADirectory => HyperkitError::FileError(FileError::IsADirectory(res)),
+                            std::io::ErrorKind::InvalidFilename => HyperkitError::FileError(FileError::InvalidFilename(res)),
+                            std::io::ErrorKind::PermissionDenied => HyperkitError::FileError(FileError::PermissionDenied(res)),
+                            std::io::ErrorKind::ReadOnlyFilesystem => HyperkitError::FileError(FileError::ReadOnlyFile(res)),
+                            std::io::ErrorKind::Unsupported => HyperkitError::FileError(FileError::UnsupportedFileType(res)),
+                            
+                            _ => HyperkitError::ShouldNotHappen
+                        }
+                        ZipError::InvalidPassword => HyperkitError::ArchiveErr(ArchiveErr::PassWordNotVaild(res)),
+                        ZipError::FileNotFound => HyperkitError::ArchiveErr(ArchiveErr::FileNotFound(res)),
+                        ZipError::UnsupportedArchive(_) =>  HyperkitError::ArchiveErr(ArchiveErr::UnsupportedArc(res)),
+                        ZipError::InvalidArchive(_) => HyperkitError::ArchiveErr(ArchiveErr::InvalidArchive(res)),
+
+                        _ => HyperkitError::ShouldNotHappen
+
+                    };
                     return Err(hypere);
                 }
             }
