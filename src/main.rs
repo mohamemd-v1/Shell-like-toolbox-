@@ -1,7 +1,7 @@
 
     mod backend;
     mod apps;
-    use crate::apps::{ZipArg, zip};
+    use crate::apps::{ZipArg, ZipDir, zip};
     use crate::backend::safe::{ ErrH, HyperkitError, Ugh};
     use crate::backend::{commands, standard::tell, parser::* };
     use std::{env::* , borrow::Cow::{self, Owned}};
@@ -112,19 +112,19 @@
 
         match tok1.trim() {
             "help" => {
-                let tok1 = token(&data, 1)?;
+                let tok1 = token(&data, 1);
                 commands::help(tok1);
             }
             "clean" => {
                 commands::clean().unwrap_or_default();
             }
             "go" => {
-                let tok2  = token(&data, 1)?;
+                let tok2  = token(&data, 1);
                 if &tok2 == "back" {
                     commands::go("..").unwrap_or_default();
                 }
                 else {
-                    let tok2 = token(&data, 1)?;
+                    let tok2 = token(&data, 1);
                     commands::go(&tok2).unwrap_or_default();
                 }
             }
@@ -135,62 +135,62 @@
                 commands::see().unwrap_or_default();
             }
             "peek" => {
-                let tok2 = token(&data, 1)?;
+                let tok2 = token(&data, 1);
                 commands::peek(&tok2).unwrap_or_default();
             }
             "mk" => {
-                let tok2 = token(&data, 1)?;
+                let tok2 = token(&data, 1);
                 commands::mk(&tok2).unwrap_or_default();
             }
             "burn" => {
-                let tok2 = token(&data, 1)?;
+                let tok2 = token(&data, 1);
                 commands::burn(&tok2).unwrap_or_default();
             }
             "rn" => {
-                let tok1 = token(&data, 1)?;
-                let tok2 = token(&data, 2)?;
+                let tok1 = token(&data, 1);
+                let tok2 = token(&data, 2);
                 commands::rn(&tok1 , &tok2).unwrap_or_default();
             }
             "clone" => {
-                let tok1 = token(&data, 1)?;
-                let tok2 = token(&data, 2)?;
+                let tok1 = token(&data, 1);
+                let tok2 = token(&data, 2);
                 commands::clone(tok1 , tok2).unwrap_or_default();
             }
             "forge" => {
-                let tok1 = token(&data, 1)?;
+                let tok1 = token(&data, 1);
                 commands::forge(tok1).unwrap_or_default();
             }
             "run" => {
-                let tok1 = token(&data , 1)?;
+                let tok1 = token(&data , 1);
                 commands::run(&tok1).unwrap_or_default();
             }
             "calc" => {
-                let tok1 = token(&data , 1)?;
+                let tok1 = token(&data , 1);
                 apps::calc(tok1);
             }
             "time" => {
                 apps::time();
             }
             "mv" => {
-                let tok1 = token(&data, 1)?;
-                let tok2 = token(&data, 2)?;
+                let tok1 = token(&data, 1);
+                let tok2 = token(&data, 2);
                 commands::mv(&tok1, &tok2).unwrap_or_default();
             }
             "tar" => {
-                let flag  = token(&data, 1)?;
-                let fname = token(&data, 2)?;
-                let outname = token(&data, 3)?;
+                let flag  = token(&data, 1);
+                let fname = token(&data, 2);
+                let outname = token(&data, 3);
                 apps::tar(&flag , &fname , &outname).unwrap_or_default();
             }
             "zip" => {
-                let flag = token(&data, 1)?;
-                let fname = token(&data, 2)?;
-                let n1 = token(&data, 3)?;
-                let f1 = token(&data, 4)?;
-                let n2 = token(&data, 5)?;
-                let f2 = token(&data, 6)?;
-                let n3 = token(&data, 7)?;
-                let f3 = token(&data, 8)?;
+                let flag = token(&data, 1);
+                let fname = token(&data, 2);
+                let n1 = token(&data, 3);
+                let f1 = token(&data, 4);
+                let n2 = token(&data, 5);
+                let f2 = token(&data, 6);
+                let n3 = token(&data, 7);
+                let f3 = token(&data, 8);
                 let ziparg = ZipArg {
                     n1:&n1,
                     n2:&n2,
@@ -199,28 +199,32 @@
                     f2:&f2,
                     f3:&f3,
                 };
-                zip(&flag, &fname, ziparg).unwrap_or_default();
+                let zipdir = ZipDir {
+                    src_dir:&fname,
+                    res_dir:&n1
+                };
+                zip(&flag, &fname, ziparg , zipdir).unwrap_or_default();
             }
             "transmute" => {
-                let ttype = token(&data, 1)?;
-                let flag  = token(&data, 2)?;
-                let fname = token(&data, 3)?;
-                let outname = token(&data, 4)?;
+                let ttype = token(&data, 1);
+                let flag  = token(&data, 2);
+                let fname = token(&data, 3);
+                let outname = token(&data, 4);
                 apps::transmute(&ttype, &flag, &fname, &outname).unwrap_or_default();
             }
             "find" => {
-                let fpath = token(&data, 1)?;
+                let fpath = token(&data, 1);
                 commands::find(&fpath).ugh();
             }
             "ps" => {
-                let tok1 = token(&data, 1)?;
-                let tok2 = token(&data, 2)?;
+                let tok1 = token(&data, 1);
+                let tok2 = token(&data, 2);
                 let tok2 = tok2.parse().map(|e: usize| e as usize).unwrap_or_default();
                 
                 commands::ps(&tok1 , tok2).ugh();
             }
             "stop" => {
-                let tok1 = token(&data, 1)?.parse().map(|e:i32| e as i32).errh(Some(tok1.to_string())).unwrap_or_default();
+                let tok1 = token(&data, 1).parse().map(|e:i32| e as i32).errh(Some(tok1.to_string())).unwrap_or_default();
                 commands::stop(tok1);    
             }
             "end" => {
