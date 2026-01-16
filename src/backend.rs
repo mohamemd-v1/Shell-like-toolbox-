@@ -3,7 +3,7 @@ use colored::Colorize;
 use sysinfo::{System};
 pub const _GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 use nix::{sys::{self, signal::{*}}, unistd::Pid};
-use crate::backend::{safe::{ErrH, HyperkitError, Success, Ugh}, standard::{input, tell}};
+use crate::backend::{safe::{ErrH, HyperkitError, Success, Ugh, Ughv}, standard::{input, tell}};
 use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
     pub fn help(helpt:String) {
        match helpt.trim() {
@@ -124,7 +124,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
 
     
     pub fn mk(path:&str) -> std::result::Result<() , HyperkitError> {
-        fs::create_dir(&path).errh(Some(path.to_string()))._success_res("Mk", "Directory created successfully").ughf()?;
+        fs::create_dir(&path).errh(Some(path.to_string()))._success_res("Mk", "Directory created successfully").ughv();
         Ok(())
     }
 
@@ -295,20 +295,20 @@ pub mod standard {
 }
 
 pub mod parser {
-    use crate::backend::safe::HyperkitError;
-
     pub fn parser(input:&str) -> Vec<&str> {
         let parse:Vec<&str> = input.split_whitespace().collect();
         return parse;
     }
-    pub fn token(data:&Vec<&str> , index:usize ) -> std::result::Result<String , HyperkitError> {
-        let token = match data.get(index) {
-            Some(t) => t,
-            None => {
-                return Err(HyperkitError::ParsingErr(super::safe::ParsingErr::InvalidDigit(Some("Coludn't parse the tokens".to_string()))));                
-            }
-        };
-        return Ok(token.to_string())
+    pub fn token(data:&Vec<&str> , index:usize ) -> String {
+        let token = data.get(index).map(|e| e.to_string());
+
+        if let Some(t) = token {
+            return t;
+        }
+
+        else {
+            return token.unwrap_or_default();
+        }
     }
 }
 
@@ -366,7 +366,8 @@ pub mod safe {
         PassWordNotVaild(Option<String>),
         FileNotFound(Option<String>),
         UnsupportedArc(Option<String>),
-        InvalidArchive(Option<String>)
+        InvalidArchive(Option<String>),
+        StripPrefixErr(Option<String>),
     }
 
     impl fmt::Display for HyperkitError {
@@ -406,7 +407,8 @@ pub mod safe {
                     ArchiveErr::FileNotFound(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"File not found".bright_red() , err_res.extract().bright_yellow().bold()),
                     ArchiveErr::InvalidArchive(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"invalid Zip archive".bright_red() , err_res.extract().bright_yellow().bold()),
                     ArchiveErr::PassWordNotVaild(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"provided password is incorrect".bright_red() , err_res.extract().bright_yellow().bold()),
-                    ArchiveErr::UnsupportedArc(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"unsupported Zip archive".bright_red() , err_res.extract().bright_yellow().bold())
+                    ArchiveErr::UnsupportedArc(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"unsupported Zip archive".bright_red() , err_res.extract().bright_yellow().bold()),
+                    ArchiveErr::StripPrefixErr(err_res) => write!(f, "{}: due to [{}: <{}>]" , "Error".bright_red().bold() ,"prefix was not found".bright_red() , err_res.extract().bright_yellow().bold())
                 }
             }
         }
@@ -429,7 +431,13 @@ pub mod safe {
         type Out;
 
         fn ugh(&self);
-        fn ughf(self) -> Self where Self: Sized; 
+        fn ughf(self) -> Self where Self: Sized;
+    }
+
+    pub trait Ughv {
+        type Out;
+
+        fn ughv(self) -> Self::Out where Self: Sized;
     }
 
     impl<T> Success<T> for std::result::Result<T, HyperkitError> {
@@ -572,6 +580,22 @@ pub mod safe {
                 Err(e) => {
                     eprintln!("[{path:?}]~>{e}");
                     return Err(e)
+                }
+            }
+        }
+    }
+
+    impl<T: Default> Ughv for std::result::Result<T , HyperkitError> {
+        type Out = T;
+
+        fn ughv(self) -> Self::Out where Self: Sized {
+            let path = tell();
+
+            match self {
+                Ok(o) => o,
+                Err(e) => {
+                    eprintln!("[{path:?}]~>{e}");
+                    T::default()         
                 }
             }
         }
