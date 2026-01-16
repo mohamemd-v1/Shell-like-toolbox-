@@ -1,16 +1,19 @@
 use core::str;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::{ env, fs, path};
 use colored::*;
 use evalexpr::*;
 use chrono::*;
 
 use tar::{Archive};
+use walkdir::WalkDir;
+use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
+use crate::backend::clean::ExtractOptions;
 use crate::backend::safe::Ugh;
 use crate::backend::standard::tell;
 
-use crate::backend::{clean::read_file_cont,safe::{ErrH, HyperkitError, Success, }};
+use crate::backend::{clean::read_file_cont,safe::{ErrH, HyperkitError, Success}};
 use base64::{prelude::{BASE64_STANDARD, BASE64_STANDARD_NO_PAD, BASE64_URL_SAFE}, *};
 
 pub fn calc (math:String) {
@@ -78,8 +81,13 @@ pub struct ZipArg<'z> {
     pub f3:&'z str
 }
 
-pub fn zip(flags:&str ,file_name:&str  , ziparg:ZipArg) -> std::result::Result<() , HyperkitError> {
+pub struct ZipDir<'z> {
+    pub src_dir:&'z str,
+    pub res_dir:&'z str,
+}
 
+pub fn zip(flags:&str ,file_name:&str  , ziparg:ZipArg , zipdir:ZipDir) -> std::result::Result<() , HyperkitError> {
+    let tell = tell();
     let args = ziparg;
 
     match flags.trim() {
@@ -130,10 +138,44 @@ pub fn zip(flags:&str ,file_name:&str  , ziparg:ZipArg) -> std::result::Result<(
             }
             zip.finish().errh(None).ughf()._success_res("Zip", "Done")?;
         }
-        "--FZip" => todo!(),
+        "--Zip-All" => {
+            let creat = fs::File::create(zipdir.res_dir).errh(Some(zipdir.res_dir.to_string())).ughf()?;
+            let mut zipdirr = ZipWriter::new(creat);
 
-        _ => {
+            let config = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored)
+            .unix_permissions(0o755);
+            
+            let src_dir = path::Path::new(zipdir.src_dir);
+
+            for i in WalkDir::new(src_dir).into_iter().filter_map(|e| e.ok()) {
+                let path = i.path();
+                let name = path.strip_prefix(src_dir).ok().ok_or(HyperkitError::ArchiveErr(crate::backend::safe::ArchiveErr::StripPrefixErr(None)))
+                .ughf()?
+                .to_str().extract();
+                
+                if name.is_empty() {
+                    continue;
+                }
+
+                if path.is_file() {
+                    println!("[{tell:?}]~>{}: {}" , "Adding file".bright_yellow().bold() , name.bright_cyan().bold());
+                    zipdirr.start_file(name, config).errh(None).ughf()?;
+                    let mut open = fs::File::open(path).errh(None).ughf()?;
+                    io::copy(&mut open, &mut zipdirr).errh(None).ughf()?;
+                }
+                else if path.is_dir() {
+                    println!("[{tell:?}]~>{}: {}", "Adding directory".bright_yellow().bold() , name.bright_cyan().bold());
+                    zipdirr.add_directory(name, config).errh(Some(name.to_string())).ughf()?;
+                }
+            }
+            zipdirr.finish().errh(Some(zipdir.src_dir.to_string())).ughf()._success_res("Zip file created successfully:", zipdir.res_dir)?;
+        },
+        "--extract" => {
             todo!()
+        }
+        _ => {
+            println!("[{tell:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag was supplied".red().bold());
         }
     }
     Ok(())
