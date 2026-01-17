@@ -1,18 +1,17 @@
+mod backend;
+mod apps;
+use crate::apps::{ZipArg, ZipDir, zip};
+use crate::backend::safe::{ ErrH, HyperkitError, Ugh};
+use crate::backend::{commands, standard::tell, parser::* };
+use std::{env::* , borrow::Cow::{self, Owned}};
+use colored::*;
 
-    mod backend;
-    mod apps;
-    use crate::apps::{ZipArg, ZipDir, zip};
-    use crate::backend::safe::{ ErrH, HyperkitError, Ugh};
-    use crate::backend::{commands, standard::tell, parser::* };
-    use std::{env::* , borrow::Cow::{self, Owned}};
-    use colored::*;
-
-    use rustyline::{Completer, Hinter, Validator , error::ReadlineError, completion::FilenameCompleter , highlight::{CmdKind, Highlighter, MatchingBracketHighlighter}, hint::HistoryHinter, 
+use rustyline::{Completer, Hinter, Validator , error::ReadlineError, completion::FilenameCompleter , highlight::{CmdKind, Highlighter, MatchingBracketHighlighter}, hint::HistoryHinter, 
     validate::MatchingBracketValidator , Cmd , CompletionType , Config , EditMode, Editor , KeyEvent , Helper 
     };
 
-    #[derive(Helper , Completer , Hinter , Validator)]
-    pub struct Enveditor {
+#[derive(Helper , Completer , Hinter , Validator)]
+pub struct Enveditor {
         #[rustyline(Completer)]
         comp:FilenameCompleter,
         hig:MatchingBracketHighlighter,
@@ -22,7 +21,7 @@
         hin:HistoryHinter,
     }
 
-    impl Highlighter for Enveditor {
+impl Highlighter for Enveditor {
         fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
             Owned("\x1b[1m".to_owned() + hint + "\x1b[0m")
         }
@@ -34,9 +33,9 @@
         }
     }
 
-    const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
+const GITHUBLINK:&str = "https://github.com/mohamemd-v1/Shell-like-toolbox-.git";
 
-    fn main() -> std::result::Result<() , HyperkitError> {
+fn main() -> std::result::Result<() , HyperkitError> {
         println!("*{} {} {} to see all the commands , {} to list all the available built in apps , {} for about" , "Enter".green()  , "help".red() ,"--commands".bright_purple() , "--built-in-apps".bright_purple() , "--about".bright_purple() );
         let home = match home_dir() {
             Some(h) => h,
@@ -243,4 +242,4 @@
             {eprintln!("[{path:?}]~>{}: due to {}" , "Error".bright_red().bold() , e.to_string().bright_red().bold())});
         
         Ok(())
-    }
+}
