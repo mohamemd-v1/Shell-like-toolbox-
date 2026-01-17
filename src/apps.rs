@@ -7,10 +7,10 @@ use chrono::*;
 
 use tar::{Archive};
 use walkdir::WalkDir;
-use zip::ZipWriter;
+use zip::{ZipArchive, ZipWriter};
 use zip::write::SimpleFileOptions;
 use crate::backend::clean::ExtractOptions;
-use crate::backend::safe::Ugh;
+use crate::backend::safe::{Ugh, Ughv};
 use crate::backend::standard::tell;
 
 use crate::backend::{clean::read_file_cont,safe::{ErrH, HyperkitError, Success}};
@@ -172,8 +172,42 @@ pub fn zip(flags:&str ,file_name:&str  , ziparg:ZipArg , zipdir:ZipDir) -> std::
             zipdirr.finish().errh(Some(zipdir.src_dir.to_string())).ughf()._success_res("Zip file created successfully:", zipdir.res_dir)?;
         },
         "--extract" => {
-            todo!()
-        }
+            let path = path::Path::new(zipdir.src_dir);
+            let outp = path::Path::new(zipdir.res_dir);
+
+            let open = fs::File::open(path).errh(Some(zipdir.src_dir.to_string())).ughf()?;
+            let mut arc = ZipArchive::new(open).errh(Some(zipdir.src_dir.to_string())).ughf()?; 
+
+            for i in 0..arc.len() {
+                let mut file = arc.by_index(i).errh(None).ughf()?;
+                let out = match file.enclosed_name() {
+                    Some(o) => outp.join(o),
+                    None => {
+                        continue;
+                    }
+                };
+
+                if file.name().ends_with('/') {
+                    fs::create_dir_all(&out).errh(Some(out.to_string_lossy().to_string())).ughf()._success_res("Zip", "extracted!")?;
+                }
+                else {
+                    if let Some(o) = out.parent() {
+                        if !o.exists() {
+                            fs::create_dir_all(o).errh(Some(o.to_string_lossy().to_string())).ughf()._success_res("Zip", "extracted!")?;
+                        }
+                    }
+                    let mut outf = fs::File::create(&out).errh(Some(out.to_string_lossy().to_string())).ughf()?;
+                    io::copy(&mut file, &mut outf).errh(Some(format!("{}|{}" , zipdir.src_dir , zipdir.res_dir).to_string())).ughv();
+                }
+                #[cfg(unix)] 
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                        if let Some(mode) = file.unix_mode() {
+                            fs::set_permissions(&out, fs::Permissions::from_mode(mode)).errh(Some(mode.to_string())).ughf()?;
+                        }
+                    }
+                }
+            }
         _ => {
             println!("[{tell:?}]~>{}: due to [{}]" , "Error".red().bold() , "No Flag was supplied".red().bold());
         }
