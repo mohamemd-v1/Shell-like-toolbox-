@@ -38,7 +38,7 @@ use std::{env::{self, }, fs::{self,File}, io::*,  path::PathBuf  , process};
                 println!("   *[{}: base64-PD<pedding> , base64-ST<standerd> , base64-URL<url> , hex<low-case hex> , Hex<uper-case hex> ][{}: --enc {} --dec {}]" , "Types".bright_green().bold() , "flags".bright_blue().bold(), "to encode a file".bright_purple().bold() , "to decode a file".bright_yellow().bold());
         }
         "zip" => {
-            println!("   *[{}: -N:{} , -E:{}]" , "Flags".bright_blue().bold() , "New File".bright_yellow().bold() , "Exsited File".bright_yellow().bold());
+            println!("   *[{}: -N:{} , -E:{} , --Zip-All:{} , --extract:{}]" , "Flags".bright_blue().bold() , "New File".bright_yellow().bold() , "Exsited File".bright_yellow().bold() , "turn the whole folder ot dir into zip".bright_yellow().bold() , "to extract a zip file".bright_yellow().bold());
         }
         _ => {
             println!("   *{} {} {} to see all the commands , {} to list all the available built in apps , {} for about" , "Enter".green()  , "help".red() ,"--commands".bright_purple() , "--built-in-apps".bright_purple() , "--about".bright_purple() );
